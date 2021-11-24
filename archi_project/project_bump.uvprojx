@@ -383,9 +383,14 @@
           <GroupName>Source Group 1</GroupName>
           <Files>
             <File>
-              <FileName>bump.s</FileName>
+              <FileName>stellar.s</FileName>
               <FileType>2</FileType>
-              <FilePath>.\bump.s</FilePath>
+              <FilePath>.\stellar.s</FilePath>
+            </File>
+            <File>
+              <FileName>config.s</FileName>
+              <FileType>2</FileType>
+              <FilePath>.\config.s</FilePath>
             </File>
           </Files>
         </Group>
