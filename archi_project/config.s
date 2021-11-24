@@ -36,6 +36,8 @@ BROCHE4_5			EQU		0x30		; led1 & led2 sur broche 4 et 5
 BROCHE6				EQU 	0x40		; bouton poussoir 1
 	
 BROCHE0				EQU     0x01 		;Bumper
+PWM_BASE		EQU		0x040028000 	   ;BASE des Block PWM p.1138
+PWM0CMPA			EQU		PWM_BASE+0x058
 
 ; blinking frequency
 DUREE   			EQU     0x002FFFFF
@@ -109,27 +111,33 @@ __main
 		ldr r7, = GPIO_PORTD_BASE + (BROCHE6<<2)  ;; @data Register = @base + (mask<<2) ==> Switcher
 		;vvvvvvvvvvvvvvvvvvvvvvvFin configuration Switcher
 		
-		;^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^CONFIGURATION Bumper droit
+		
+		;^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^CONFIGURATION Bumper gauche
+		ldr r13, = GPIO_PORTE_BASE+GPIO_I_PUR	;; Pul_up 
+        ldr r0, = BROCHE0		
+        str r0, [r13]
+		
+		ldr r13, = GPIO_PORTE_BASE+GPIO_O_DEN	;; Enable Digital Function 
+        ldr r0, = BROCHE0
+        str r0, [r13]     
+		
+		ldr r13, = GPIO_PORTE_BASE + (BROCHE0<<2)  ;; @data Register = @base + (mask<<2) ==> Switcher
 		;vvvvvvvvvvvvvvvvvvvvvvvFin configuration Switcher
+		
 		
 		; Configure les PWM + GPIO
 		BL	MOTEUR_INIT
 		;; BL Branchement vers un lien (sous programme)
 		ldr r6, = GPIO_PORTF_BASE + (BROCHE4_5<<2)
 		str r3, [r6]
-leto
+
+		
+switch1
 	
 		ldr r12, [r7]
 		CMP r12,#0x00
-		BNE leto
-		
-;ReadState
-
-		;ldr r10,[r7]
-		;CMP r10,#0x00
-		;BNE ReadState
+		BNE switch1
 			   		   
-		
 		; Activer les deux moteurs droit et gauche
 		BL	MOTEUR_DROIT_ON
 		BL	MOTEUR_GAUCHE_ON
@@ -145,12 +153,12 @@ leto
 		BL	WAIT
 		
 		; Rotation à droite de l'Evalbot pendant une demi-période (1 seul WAIT)
-		BL	MOTEUR_DROIT_ARRIERE   ; MOTEUR_DROIT_INVERSE
-		BL	WAIT
+		;BL	MOTEUR_DROIT_ARRIERE   ; MOTEUR_DROIT_INVERSE
+		;BL	WAIT
 
 		;b	loop
 
-loop2
+loop
 		ldr r6, = GPIO_PORTF_BASE + (BROCHE4_5<<2)
 		str r2, [r6]    						;; Eteint LED car r2 = 0x00      
         ldr r1, = DUREE
@@ -160,20 +168,42 @@ wait1
 		ldr r6, = GPIO_PORTF_BASE + (BROCHE4_5<<2)
         str r3, [r6]  							;; Allume LED1&2 portF broche 4&5 : 00110000 (contenu de r3)
         ldr r1, = DUREE	
-		;; Boucle d'attante
+		;; Boucle d'attente
 wait2 	subs r1,#1
 		bne wait2
 		
-		b loop2
+		b loop
 WAIT	ldr r1, =0xAFFFFF 
 								;; pour la duree de la boucle d'attente2 (wait2)
 wait13	
 		;Au moment de faire les rotations, pour pouvoir écouter les autres ports, à chaque fois qu'on rentre dans le wait faires clignoter les leds
 		; peut êtee mettre un compteur dans cette boucle pour ne pas activer les leds a chaque fois et faire une crise d'épilepsie 
-		subs r1, #1
+bump1		
+		;b	loop
+		ldr r14, [r13]
+		CMP r14,#0x00
+		BNE bump1
+loop2
+		BL	MOTEUR_DROIT_ARRIERE	   
+		BL	MOTEUR_GAUCHE_ARRIERE
+		BL	WAIT5
+		
+		ldr	r6, =PWM0CMPA ;Valeur rapport cyclique : pour 10% => 1C2h si clock = 0F42400
+		mov	r0, 0x182
+		str	r0, [r6]
+		
+		BL	MOTEUR_DROIT_AVANT   ;MOTEUR_DROIT_INVERSE
+		BL	WAIT5
+		b	loop2
+WAIT5	ldr r1, =0xAFFFFF
+wait6	subs r1, #1
+        bne wait6
+		
+		
         bne wait13
 		;; retour à la suite du lien de branchement
 		BX	LR
+
 
 		NOP
         END
