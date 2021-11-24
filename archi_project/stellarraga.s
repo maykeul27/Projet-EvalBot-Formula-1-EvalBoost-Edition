@@ -1,5 +1,3 @@
-;; stellar est le fichier de déclaration des pins pour utiliser les périphériques
-
 ;; RK - Evalbot (Cortex M3 de Texas Instrument); 
 ; programme - Pilotage 2 Moteurs Evalbot par PWM tout en ASM (configure les pwms + GPIO)
 

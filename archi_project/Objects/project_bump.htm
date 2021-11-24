@@ -3,7 +3,11 @@
 <title>Static Call Graph - [.\Objects\project_bump.axf]</title></head>
 <body><HR>
 <H1>Static Call Graph for image .\Objects\project_bump.axf</H1><HR>
+<<<<<<< HEAD
 <BR><P>#&#060CALLGRAPH&#062# ARM Linker, 5060750: Last Updated: Wed Nov 24 18:53:24 2021
+=======
+<BR><P>#&#060CALLGRAPH&#062# ARM Linker, 5060750: Last Updated: Wed Nov 24 18:08:53 2021
+>>>>>>> 5c371d4d63693ef86762f0248c51725ce7e06780
 <BR><P>
 <H3>Maximum Stack Usage =          0 bytes + Unknown(Functions without stacksize, Cycles, Untraceable Function Pointers)</H3><H3>
 Call chain for Maximum Stack Depth:</H3>
@@ -108,14 +112,21 @@ Global Symbols
 <BR><BR>[Called By]<UL><LI><a href="#[18]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;__main
 </UL>
 
-<P><STRONG><a name="[20]"></a>MOTEUR_GAUCHE_AVANT</STRONG> (Thumb, 0 bytes, Stack size unknown bytes, stellar.o(.text), UNUSED, KEPT)
+<P><STRONG><a name="[20]"></a>MOTEUR_GAUCHE_AVANT</STRONG> (Thumb, 0 bytes, Stack size unknown bytes, stellar.o(.text))
+<BR><BR>[Called By]<UL><LI><a href="#[18]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;__main
+</UL>
 
 <P><STRONG><a name="[21]"></a>MOTEUR_DROIT_INVERSE</STRONG> (Thumb, 0 bytes, Stack size unknown bytes, stellar.o(.text), UNUSED, KEPT)
 
 <P><STRONG><a name="[22]"></a>MOTEUR_GAUCHE_INVERSE</STRONG> (Thumb, 0 bytes, Stack size unknown bytes, stellar.o(.text), UNUSED, KEPT)
 
 <P><STRONG><a name="[18]"></a>__main</STRONG> (Thumb, 0 bytes, Stack size unknown bytes, config.o(.text))
+<<<<<<< HEAD
 <BR><BR>[Calls]<UL><LI><a href="#[1f]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;MOTEUR_GAUCHE_ARRIERE
+=======
+<BR><BR>[Calls]<UL><LI><a href="#[20]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;MOTEUR_GAUCHE_AVANT
+<LI><a href="#[1f]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;MOTEUR_GAUCHE_ARRIERE
+>>>>>>> 5c371d4d63693ef86762f0248c51725ce7e06780
 <LI><a href="#[1e]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;MOTEUR_DROIT_AVANT
 <LI><a href="#[1d]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;MOTEUR_DROIT_ARRIERE
 <LI><a href="#[1b]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;MOTEUR_GAUCHE_ON
