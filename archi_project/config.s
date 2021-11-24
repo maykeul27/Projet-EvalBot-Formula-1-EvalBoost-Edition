@@ -1,3 +1,4 @@
+
 ;; RK - Evalbot (Cortex M3 de Texas Instrument)
 ; programme - Pilotage 2 Moteurs Evalbot par PWM tout en ASM (Evalbot tourne sur lui même)
 
@@ -27,7 +28,7 @@ GPIO_O_DR2R   		EQU 	0x00000500  ; GPIO 2-mA Drive Select (p428 datasheet de lm3
 ; To use the pin as a digital input or output, the corresponding GPIODEN bit must be set.
 GPIO_O_DEN  		EQU 	0x0000051C  ; GPIO Digital Enable (p437 datasheet de lm3s9B92.pdf)
 
-; Pul_up
+; Pul_up -> impulsion
 GPIO_I_PUR   		EQU 	0x00000510  ; GPIO Pull-Up (p432 datasheet de lm3s9B92.pdf)
 
 ; Broches select
@@ -36,6 +37,8 @@ BROCHE4_5			EQU		0x30		; led1 & led2 sur broche 4 et 5
 BROCHE6				EQU 	0x40		; bouton poussoir 1
 	
 BROCHE0				EQU     0x01 		;Bumper
+	
+BROCHE1				EQU     0x02 		;Bumper
 
 ; blinking frequency
 DUREE   			EQU     0x002FFFFF
@@ -65,7 +68,7 @@ __main
 		ldr r6, = SYSCTL_PERIPH_GPIO  			;; RCGC2
         mov r0, #0x00000038  					;; Enable clock sur GPIO D et F où sont branchés les leds (0x28 == 0b101000)
 		; ;;														 									      (GPIO::FEDCBA)
-        str r0, [r6]
+        str r0, [r6] ; ajout le périphérique GPIO dans la clock
 		
 		; ;; "There must be a delay of 3 system clocks before any GPIO reg. access  (p413 datasheet de lm3s9B92.pdf)
 		nop	   									;; tres tres important....
@@ -98,18 +101,27 @@ __main
 		
 		;^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^CONFIGURATION Switcher 1
 
-		ldr r7, = GPIO_PORTD_BASE+GPIO_I_PUR	;; Pul_up 
-        ldr r0, = BROCHE6		
-        str r0, [r7]
-		
-		ldr r7, = GPIO_PORTD_BASE+GPIO_O_DEN	;; Enable Digital Function 
+        ldr r7, = GPIO_PORTD_BASE+GPIO_I_PUR    ;; Pul_up 
         ldr r0, = BROCHE6
-        str r0, [r7]     
-		
-		ldr r7, = GPIO_PORTD_BASE + (BROCHE6<<2)  ;; @data Register = @base + (mask<<2) ==> Switcher
-		;vvvvvvvvvvvvvvvvvvvvvvvFin configuration Switcher
+        str r0, [r7]
+
+        ldr r7, = GPIO_PORTD_BASE+GPIO_O_DEN    ;; Enable Digital Function 
+        ldr r0, = BROCHE6
+        str r0, [r7]
+
+        ldr r7, = GPIO_PORTD_BASE + (BROCHE6<<2)  ;; @data Register = @base + (mask<<2) ==> Switcher
+        ;vvvvvvvvvvvvvvvvvvvvvvvFin configuration Switcher
 		
 		;^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^CONFIGURATION Bumper droit
+		ldr r8, = GPIO_PORTE_BASE+GPIO_I_PUR	;; Pul_up 
+        ldr r0, = BROCHE1		
+        str r0, [r8]
+		
+		ldr r8, = GPIO_PORTE_BASE+GPIO_O_DEN	;; Enable Digital Function 
+        ldr r0, = BROCHE1
+        str r0, [r8]     
+		
+		ldr r8, = GPIO_PORTE_BASE + (BROCHE1<<2)
 		;vvvvvvvvvvvvvvvvvvvvvvvFin configuration Switcher
 		
 		; Configure les PWM + GPIO
@@ -120,22 +132,19 @@ __main
 leto
 	
 		ldr r12, [r7]
-		CMP r12,#0x00
+		CMP r12,#0x00 ; tant que le bouton est éteint, on boucle
 		BNE leto
 		
 ;ReadState
 
 		;ldr r10,[r7]
 		;CMP r10,#0x00
-		;BNE ReadState
-			   		   
+		;BNE ReadState 		   
 		
 		; Activer les deux moteurs droit et gauche
 		BL	MOTEUR_DROIT_ON
 		BL	MOTEUR_GAUCHE_ON
-
-		; Boucle de pilotage des 2 Moteurs (Evalbot tourne sur lui même)
-;loop	
+	
 		; Evalbot avance droit devant
 		BL	MOTEUR_DROIT_ARRIERE	   
 		BL	MOTEUR_GAUCHE_ARRIERE
@@ -144,13 +153,22 @@ leto
 		BL	WAIT	; BL (Branchement vers le lien WAIT); possibilité de retour à la suite avec (BX LR)
 		BL	WAIT
 		
+		
+;virage_droite
+		
 		; Rotation à droite de l'Evalbot pendant une demi-période (1 seul WAIT)
-		BL	MOTEUR_DROIT_ARRIERE   ; MOTEUR_DROIT_INVERSE
-		BL	WAIT
+		;BL	MOTEUR_DROIT_ARRIERE   ; MOTEUR_DROIT_INVERSE
+		;BL	WAIT
+;		ldr r13, [r8]
+;		CMP r13,#0x00 ; tant que le switch droit est éteint, on boucle
+;		BNE virage_droite
+		
+		; Rotation à droite de l'Evalbot pendant une demi-période (1 seul WAIT)
+;		BL	MOTEUR_DROIT_ARRIERE   ; MOTEUR_DROIT_INVERSE
+;		BL	WAIT
+		
 
-		;b	loop
-
-loop2
+clignotement
 		ldr r6, = GPIO_PORTF_BASE + (BROCHE4_5<<2)
 		str r2, [r6]    						;; Eteint LED car r2 = 0x00      
         ldr r1, = DUREE
@@ -164,16 +182,32 @@ wait1
 wait2 	subs r1,#1
 		bne wait2
 		
-		b loop2
+		b clignotement
 WAIT	ldr r1, =0xAFFFFF 
 								;; pour la duree de la boucle d'attente2 (wait2)
-wait13	
-		;Au moment de faire les rotations, pour pouvoir écouter les autres ports, à chaque fois qu'on rentre dans le wait faires clignoter les leds
-		; peut êtee mettre un compteur dans cette boucle pour ne pas activer les leds a chaque fois et faire une crise d'épilepsie 
-		subs r1, #1
-        bne wait13
-		;; retour à la suite du lien de branchement
-		BX	LR
+wait13
+        ;Au moment de faire les rotations, pour pouvoir écouter les autres ports, à chaque fois qu'on rentre dans le wait faires clignoter les leds
+        ; peut êtee mettre un compteur dans cette boucle pour ne pas activer les leds a chaque fois et faire une crise d'épilepsie 
 
-		NOP
+bump_droit_inactif
+
+        ldr r14, [r8]
+        CMP r14,#0x00
+        BNE bump_droit_inactif
+loop2
+        BL    MOTEUR_DROIT_ON
+        BL    MOTEUR_GAUCHE_ON	
+		BL 	  MOTEUR_DROIT_AVANT 
+		BL 	  MOTEUR_GAUCHE_AVANT
+        BL    WAIT
+        BL    WAIT
+        b    loop2
+        subs r1, #1
+        bne wait13
+        ;; retour à la suite du lien de branchement
+        BX    LR
+
+
+        NOP
         END
+			
