@@ -183,19 +183,21 @@ bump1
 		ldr r14, [r13]
 		CMP r14,#0x00
 		BNE bump1
-loop2
-		BL	MOTEUR_DROIT_ARRIERE	   
-		BL	MOTEUR_GAUCHE_ARRIERE
-		BL	WAIT5
-		
 		ldr	r6, =PWM0CMPA ;Valeur rapport cyclique : pour 10% => 1C2h si clock = 0F42400
 		mov	r0, 0x182
 		str	r0, [r6]
 		
 		BL	MOTEUR_DROIT_AVANT   ;MOTEUR_DROIT_INVERSE
 		BL	WAIT5
+loop2
+		ldr	r6, =PWM0CMPA ;Valeur rapport cyclique : pour 10% => 1C2h si clock = 0F42400
+		mov	r0, 0x50
+		str	r0, [r6]
+		BL	MOTEUR_DROIT_ARRIERE
+		CMP r14,#0x00
+		BNE bump1
 		b	loop2
-WAIT5	ldr r1, =0xAFFFFF
+WAIT5	ldr r1, =0xEFFFF
 wait6	subs r1, #1
         bne wait6
 		
