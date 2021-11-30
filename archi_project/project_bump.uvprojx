@@ -383,14 +383,14 @@
           <GroupName>Source Group 1</GroupName>
           <Files>
             <File>
-              <FileName>configraga.s</FileName>
+              <FileName>stellar.s</FileName>
               <FileType>2</FileType>
-              <FilePath>.\configraga.s</FilePath>
+              <FilePath>.\stellar.s</FilePath>
             </File>
             <File>
-              <FileName>stellarraga.s</FileName>
+              <FileName>config.s</FileName>
               <FileType>2</FileType>
-              <FilePath>.\stellarraga.s</FilePath>
+              <FilePath>.\config.s</FilePath>
             </File>
           </Files>
         </Group>

@@ -207,8 +207,8 @@
       <tvExp>0</tvExp>
       <tvExpOptDlg>0</tvExpOptDlg>
       <bDave2>0</bDave2>
-      <PathWithFileName>.\configraga.s</PathWithFileName>
-      <FilenameWithoutPath>configraga.s</FilenameWithoutPath>
+      <PathWithFileName>.\stellar.s</PathWithFileName>
+      <FilenameWithoutPath>stellar.s</FilenameWithoutPath>
       <RteFlg>0</RteFlg>
       <bShared>0</bShared>
     </File>
@@ -219,8 +219,8 @@
       <tvExp>0</tvExp>
       <tvExpOptDlg>0</tvExpOptDlg>
       <bDave2>0</bDave2>
-      <PathWithFileName>.\stellarraga.s</PathWithFileName>
-      <FilenameWithoutPath>stellarraga.s</FilenameWithoutPath>
+      <PathWithFileName>.\config.s</PathWithFileName>
+      <FilenameWithoutPath>config.s</FilenameWithoutPath>
       <RteFlg>0</RteFlg>
       <bShared>0</bShared>
     </File>

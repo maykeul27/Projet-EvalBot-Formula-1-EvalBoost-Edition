@@ -2,7 +2,6 @@
 ; programme - Pilotage 2 Moteurs Evalbot par PWM tout en ASM (Evalbot tourne sur lui même)
 
 
-
 		AREA    |.text|, CODE, READONLY
 		; This register controls the clock gating logic in normal Run mode
 SYSCTL_PERIPH_GPIO EQU		0x400FE108	; SYSCTL_RCGC2_R (p291 datasheet de lm3s9b92.pdf)
@@ -36,7 +35,7 @@ BROCHE4_5			EQU		0x30		; led1 & led2 sur broche 4 et 5
 BROCHE6				EQU 	0x40		; bouton poussoir 1
 	
 BROCHE0				EQU     0x01 		;Bumper
-PWM_BASE		EQU		0x040028000 	   ;BASE des Block PWM p.1138
+PWM_BASE			EQU		0x040028000 	   ;BASE des Block PWM p.1138
 PWM0CMPA			EQU		PWM_BASE+0x058
 
 ; blinking frequency
@@ -184,10 +183,10 @@ bump1
 		CMP r14,#0x00
 		BNE bump1
 		ldr	r6, =PWM0CMPA ;Valeur rapport cyclique : pour 10% => 1C2h si clock = 0F42400
-		mov	r0, 0x182
+		mov	r0, 0x182 ; vitesse de la roue droite
 		str	r0, [r6]
 		
-		BL	MOTEUR_DROIT_AVANT   ;MOTEUR_DROIT_INVERSE
+		BL	MOTEUR_DROIT_AVANT   ;fait tourner une roue dans l'autre sens moins vite pour tourner
 		BL	WAIT5
 loop2
 		ldr	r6, =PWM0CMPA ;Valeur rapport cyclique : pour 10% => 1C2h si clock = 0F42400
@@ -201,11 +200,8 @@ WAIT5	ldr r1, =0xEFFFF
 wait6	subs r1, #1
         bne wait6
 		
-		
         bne wait13
 		;; retour à la suite du lien de branchement
 		BX	LR
-
-
 		NOP
         END

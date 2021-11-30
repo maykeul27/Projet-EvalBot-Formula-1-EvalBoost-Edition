@@ -358,8 +358,10 @@ ARM Macro Assembler    Page 6
   187 000000A8 F44F 70C1       mov              r0, 0x182
   188 000000AC 6030            str              r0, [r6]
   189 000000AE         
-  190 000000AE F7FF FFFE       BL               MOTEUR_DROIT_AVANT ;MOTEUR_DROI
-                                                            T_INVERSE
+  190 000000AE F7FF FFFE       BL               MOTEUR_DROIT_AVANT ;fait tourne
+                                                            r une roue dans l'a
+                                                            utre sens moins vit
+                                                            e pour tourner
   191 000000B2 F000 F80A       BL               WAIT5
   192 000000B6         loop2
   193 000000B6 4E15            ldr              r6, =PWM0CMPA ;Valeur rapport c
@@ -386,14 +388,14 @@ ARM Macro Assembler    Page 6
   211 000000D6                 END
               00 00 400FE108 
               40025400 
-              4002551C 
-              40025500 
 
 
 
 ARM Macro Assembler    Page 7 
 
 
+              4002551C 
+              40025500 
               400250C0 
               40007510 
               4000751C 
@@ -407,11 +409,11 @@ ARM Macro Assembler    Page 7
               000EFFFF 
 Command Line: --debug --xref --diag_suppress=9931 --cpu=Cortex-M3 --apcs=interw
 ork --depend=.\objects\configraga.d -o.\objects\configraga.o -I.\RTE\_Target_1 
--IC:\Users\Ragavi\AppData\Local\Arm\Packs\ARM\CMSIS\5.8.0\CMSIS\Core\Include -I
-C:\Users\Ragavi\AppData\Local\Arm\Packs\ARM\CMSIS\5.8.0\Device\ARM\ARMCM3\Inclu
-de --predefine="__EVAL SETA 1" --predefine="__MICROLIB SETA 1" --predefine="__U
-VISION_VERSION SETA 528" --predefine="_RTE_ SETA 1" --predefine="ARMCM3 SETA 1"
- --list=.\listings\configraga.lst configraga.s
+-IC:\Users\audri\AppData\Local\Arm\Packs\ARM\CMSIS\5.8.0\CMSIS\Core\Include -IC
+:\Users\audri\AppData\Local\Arm\Packs\ARM\CMSIS\5.8.0\Device\ARM\ARMCM3\Include
+ --predefine="__EVAL SETA 1" --predefine="__MICROLIB SETA 1" --predefine="__UVI
+SION_VERSION SETA 528" --predefine="_RTE_ SETA 1" --predefine="ARMCM3 SETA 1" -
+-list=.\listings\configraga.lst configraga.s
 
 
 
