@@ -38,7 +38,6 @@ BROCHE0				EQU     0x01 		;Bumper
 PWM_BASE			EQU		0x040028000 	   ;BASE des Block PWM p.1138
 PWM0CMPA			EQU		PWM_BASE+0x058
 
-
 ; blinking frequency
 DUREE   			EQU     0x002FFFFF
 		ENTRY
@@ -124,6 +123,7 @@ __main
 		ldr r13, = GPIO_PORTE_BASE + (BROCHE0<<2)  ;; @data Register = @base + (mask<<2) ==> Switcher
 		;vvvvvvvvvvvvvvvvvvvvvvvFin configuration Switcher
 		
+		
 		; Configure les PWM + GPIO
 		BL	MOTEUR_INIT
 		;; BL Branchement vers un lien (sous programme)
@@ -155,40 +155,51 @@ switch1
 		;BL	MOTEUR_DROIT_ARRIERE   ; MOTEUR_DROIT_INVERSE
 		;BL	WAIT
 
+		;b	loop
 
+loop
+		ldr r6, = GPIO_PORTF_BASE + (BROCHE4_5<<2)
+		str r2, [r6]    						;; Eteint LED car r2 = 0x00      
+        ldr r1, = DUREE
+wait1
+		subs r1, #1
+		bne wait1
+		ldr r6, = GPIO_PORTF_BASE + (BROCHE4_5<<2)
+        str r3, [r6]  							;; Allume LED1&2 portF broche 4&5 : 00110000 (contenu de r3)
+        ldr r1, = DUREE	
+		;; Boucle d'attente
+wait2 	subs r1,#1
+		bne wait2
 		
+		b loop
 WAIT	ldr r1, =0xAFFFFF 
 								;; pour la duree de la boucle d'attente2 (wait2)
 wait13	
 		;Au moment de faire les rotations, pour pouvoir écouter les autres ports, à chaque fois qu'on rentre dans le wait faires clignoter les leds
 		; peut êtee mettre un compteur dans cette boucle pour ne pas activer les leds a chaque fois et faire une crise d'épilepsie 
-bump1	
-		  
+bump1		
+		;b	loop
 		ldr r14, [r13]
 		CMP r14,#0x00
 		BNE bump1
 		ldr	r6, =PWM0CMPA ;Valeur rapport cyclique : pour 10% => 1C2h si clock = 0F42400
-		mov	r0, 0x180; vitesse de la roue droite
+		mov	r0, 0x182 ; vitesse de la roue droite
 		str	r0, [r6]
+		
 		BL	MOTEUR_DROIT_AVANT   ;fait tourner une roue dans l'autre sens moins vite pour tourner
-		ldr r6, = GPIO_PORTF_BASE + (BROCHE4_5<<2)
-		str r2, [r6]    						;; Eteint LED car r2 = 0x00 
-		ldr r6, = GPIO_PORTF_BASE + (0x10<<2)
-		str r3, [r6]
 		BL	WAIT5
 loop2
 		ldr	r6, =PWM0CMPA ;Valeur rapport cyclique : pour 10% => 1C2h si clock = 0F42400
-		mov	r0, 0x100
+		mov	r0, 0x50
 		str	r0, [r6]
 		BL	MOTEUR_DROIT_ARRIERE
-		ldr r6, = GPIO_PORTF_BASE + (BROCHE4_5<<2)
-		str r3, [r6]
 		CMP r14,#0x00
 		BNE bump1
 		b	loop2
-WAIT5	ldr r1, = 0xEFFFF
+WAIT5	ldr r1, =0xEFFFF
 wait6	subs r1, #1
-        bne wait6	
+        bne wait6
+		
         bne wait13
 		;; retour à la suite du lien de branchement
 		BX	LR

@@ -161,8 +161,8 @@ ARM Macro Assembler    Page 3
                                EQU              PWM_BASE+0x0A4
    60 00000000         
    61 00000000         
-   62 00000000 00000050 
-                       VITESSE EQU              0x50        ; Valeures plus pet
+   62 00000000 00000100 
+                       VITESSE EQU              0x100       ; Valeures plus pet
                                                             ites => Vitesse plu
                                                             s rapide exemple 0x
                                                             192
@@ -319,7 +319,7 @@ ARM Macro Assembler    Page 5
                                                             yclique : pour 10% 
                                                             => 1C2h si clock = 
                                                             0F42400
-  161 0000006A F04F 0050       mov              r0, #VITESSE
+  161 0000006A F44F 7080       mov              r0, #VITESSE
   162 0000006E 6030            str              r0, [r6]
   163 00000070         
   164 00000070 4E4B            ldr              r6, =PWM0CMPB ;PWM0CMPB recoit 
@@ -398,7 +398,7 @@ ARM Macro Assembler    Page 7
                                                             yclique : pour 10% 
                                                             => 1C2h si clock = 
                                                             0F42400
-  200 000000A4 F04F 0050       mov              r0, #VITESSE
+  200 000000A4 F44F 7080       mov              r0, #VITESSE
   201 000000A8 6030            str              r0, [r6]    ;*(int *)(0x4002800
                                                             0+0x058)=0x01C2;
   202 000000AA         
@@ -594,11 +594,11 @@ ARM Macro Assembler    Page 10
               40007008 
 Command Line: --debug --xref --diag_suppress=9931 --cpu=Cortex-M3 --apcs=interw
 ork --depend=.\objects\stellarraga.d -o.\objects\stellarraga.o -I.\RTE\_Target_
-1 -IC:\Users\audri\AppData\Local\Arm\Packs\ARM\CMSIS\5.8.0\CMSIS\Core\Include -
-IC:\Users\audri\AppData\Local\Arm\Packs\ARM\CMSIS\5.8.0\Device\ARM\ARMCM3\Inclu
-de --predefine="__EVAL SETA 1" --predefine="__MICROLIB SETA 1" --predefine="__U
-VISION_VERSION SETA 528" --predefine="_RTE_ SETA 1" --predefine="ARMCM3 SETA 1"
- --list=.\listings\stellarraga.lst stellarraga.s
+1 -IC:\Users\Ragavi\AppData\Local\Arm\Packs\ARM\CMSIS\5.8.0\CMSIS\Core\Include 
+-IC:\Users\Ragavi\AppData\Local\Arm\Packs\ARM\CMSIS\5.8.0\Device\ARM\ARMCM3\Inc
+lude --predefine="__EVAL SETA 1" --predefine="__MICROLIB SETA 1" --predefine="_
+_UVISION_VERSION SETA 528" --predefine="_RTE_ SETA 1" --predefine="ARMCM3 SETA 
+1" --list=.\listings\stellarraga.lst stellarraga.s
 
 
 
@@ -1073,7 +1073,7 @@ Symbol: SYSCTL_RCGC2
       At line 94 in file stellarraga.s
       At line 100 in file stellarraga.s
 
-VITESSE 00000050
+VITESSE 00000100
 
 Symbol: VITESSE
    Definitions
