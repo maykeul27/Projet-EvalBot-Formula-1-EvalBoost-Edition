@@ -197,8 +197,8 @@ loop2
 		BNE bump1
 		b	loop2
 WAIT5	ldr r1, =0xEFFFF
-wait6	subs r1, #1
-        bne wait6
+;wait6	subs r1, #1 probablement inute
+        ;bne wait6
 		
         bne wait13
 		;; retour à la suite du lien de branchement
