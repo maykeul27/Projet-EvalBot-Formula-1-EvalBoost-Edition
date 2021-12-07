@@ -1,18 +1,34 @@
-;; RK - Evalbot (Cortex M3 de Texas Instrument)
-; programme - Pilotage 2 Moteurs Evalbot par PWM tout en ASM (Evalbot tourne sur lui même)
-
-
 		AREA    |.text|, CODE, READONLY
-		; This register controls the clock gating logic in normal Run mode
-SYSCTL_PERIPH_GPIO EQU		0x400FE108	; SYSCTL_RCGC2_R (p291 datasheet de lm3s9b92.pdf)
+PWM_BASE		EQU		0x040028000 	   ;BASE des Block PWM p.1138
+PWMENABLE		EQU		PWM_BASE+0x008	   ; p1145
+
+;Block PWM0 pour sorties PWM0 et PWM1 (moteur 1)
+PWM0CTL			EQU		PWM_BASE+0x040 ;p1167
+PWM0LOAD		EQU		PWM_BASE+0x050
+PWM0CMPA		EQU		PWM_BASE+0x058
+PWM0CMPB		EQU		PWM_BASE+0x05C
+PWM0GENA		EQU		PWM_BASE+0x060
+PWM0GENB		EQU		PWM_BASE+0x064
+
+;Block PWM1 pour sorties PWM1 et PWM2 (moteur 2)
+PWM1CTL			EQU		PWM_BASE+0x080 
+PWM1LOAD		EQU		PWM_BASE+0x090
+PWM1CMPA		EQU		PWM_BASE+0x098
+PWM1CMPB		EQU		PWM_BASE+0x09C
+PWM1GENA		EQU		PWM_BASE+0x0A0
+PWM1GENB		EQU		PWM_BASE+0x0A4
+ 
+; This register controls the clock gating logic in normal Run mode
+SYSCTL_PERIPH_GPIOF EQU		0x400FE108	; SYSCTL_RCGC2_R (p291 datasheet de lm3s9b92.pdf)
 
 ; The GPIODATA register is the data register
 GPIO_PORTF_BASE		EQU		0x40025000	; GPIO Port F (APB) base: 0x4002.5000 (p416 datasheet de lm3s9B92.pdf)
-
-; The GPIODATA register is the data register
-GPIO_PORTD_BASE		EQU		0x40007000		; GPIO Port D (APB) base: 0x4000.7000 (p416 datasheet de lm3s9B92.pdf)
-
+	
 GPIO_PORTE_BASE		EQU		0x40024000
+	
+GPIO_PORTD_BASE		EQU		0x40007000
+
+GPIO_I_PUR   		EQU 	0x00000510
 
 ; configure the corresponding pin to be an output
 ; all GPIO pins are inputs by default
@@ -24,24 +40,31 @@ GPIO_O_DR2R   		EQU 	0x00000500  ; GPIO 2-mA Drive Select (p428 datasheet de lm3
 
 ; Digital enable register
 ; To use the pin as a digital input or output, the corresponding GPIODEN bit must be set.
-GPIO_O_DEN  		EQU 	0x0000051C  ; GPIO Digital Enable (p437 datasheet de lm3s9B92.pdf)
+GPIO_O_DEN   		EQU 	0x0000051C  ; GPIO Digital Enable (p437 datasheet de lm3s9B92.pdf)
 
-; Pul_up
-GPIO_I_PUR   		EQU 	0x00000510  ; GPIO Pull-Up (p432 datasheet de lm3s9B92.pdf)
-
-; Broches select
-BROCHE4_5			EQU		0x30		; led1 & led2 sur broche 4 et 5
-
-BROCHE6				EQU 	0x40		; bouton poussoir 1
+; PIN select
+BROCHE4_5		    EQU		0x30		; Les led1 et led2 sur broche 4 et 5
 	
-BROCHE0				EQU     0x01 		;Bumper
-PWM_BASE			EQU		0x040028000 	   ;BASE des Block PWM p.1138
-PWM0CMPA			EQU		PWM_BASE+0x058
+BROCHE6_7			EQU 	0xC0 		; Les switch1 et switch2 sur broche 6 et 7 
 
+BROCHE2_3           EQU     0x3C        ; Les led1 et led2 sur broche 2 et 3 : sur le branchement du câble ethernet
+	
+BROCHE6				EQU 	0x40		; switch1
+	
+BROCHE7				EQU 	0x80		; switch2
+
+BROCHE0_1		   	EQU 	0x03		; Les bumper1 et bumper2 sur broche 0 et 1
+	
+BROCHE0		   		EQU 	0x01		; bumper1
+	
+BROCHE1		   		EQU 	0x02		; bumper2
 
 ; blinking frequency
-DUREE   			EQU     0x002FFFFF
-		ENTRY
+DUREE   			EQU     0x001FFFFF	
+	
+DUREE1   			EQU     0x002FFFFF
+
+	  	ENTRY
 		EXPORT	__main
 		
 		;; The IMPORT command specifies that a symbol is defined in a shared object at runtime.
@@ -58,139 +81,362 @@ DUREE   			EQU     0x002FFFFF
 		IMPORT  MOTEUR_GAUCHE_AVANT			; moteur gauche tourne vers l'avant
 		IMPORT  MOTEUR_GAUCHE_ARRIERE		; moteur gauche tourne vers l'arrière
 		IMPORT  MOTEUR_GAUCHE_INVERSE		; inverse le sens de rotation du moteur gauche
-
-
 __main	
-
-		; ;; Enable the Port F & D peripheral clock 		(p291 datasheet de lm3s9B96.pdf)
-		; ;;									
-		ldr r6, = SYSCTL_PERIPH_GPIO  			;; RCGC2
-        mov r0, #0x00000038  					;; Enable clock sur GPIO D et F où sont branchés les leds (0x28 == 0b101000)
-		; ;;														 									      (GPIO::FEDCBA)
+		
+		
+		; ;; Enable the Port F peripheral clock by setting bit 5 (0x20 == 0b10000000)		(p291 datasheet de lm3s9B96.pdf)
+		; ;;														(GPIO::876543210)
+		ldr r6, = SYSCTL_PERIPH_GPIOF  			;; RCGC2
+        mov r0, #0x00000038  					;; Enable clock sur GPIO F où sont branchés les leds (0x20 == 0b100000)
+		; ;;														 									 (GPIO::FEDCBA)
         str r0, [r6]
 		
 		; ;; "There must be a delay of 3 system clocks before any GPIO reg. access  (p413 datasheet de lm3s9B92.pdf)
-		nop	   									;; tres tres important....
+		nop	   									
 		nop	   
-		nop	   									;; pas necessaire en simu ou en debbug step by step...
+		nop	   									
 	
 		;^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^CONFIGURATION LED
 
-        ldr r6, = GPIO_PORTF_BASE+GPIO_O_DIR    ;; 1 Pin du portF en sortie (broche 4 : 00010000)
-        ldr r0, = BROCHE4_5 	
+        ldr r6, = GPIO_PORTF_BASE+GPIO_O_DIR    ;; 1 Pin du portF en sortie (broche 4 et 5: 00010000)
+        ldr r0, = BROCHE4_5	
         str r0, [r6]
 		
-		ldr r6, = GPIO_PORTF_BASE+GPIO_O_DEN	;; Enable Digital Function 
-        ldr r0, = BROCHE4_5		
+        ldr r6, = GPIO_PORTF_BASE+GPIO_O_DEN	;; Enable Digital Function 
+        ldr r0, = BROCHE4_5 		
         str r0, [r6]
-		
+ 
 		ldr r6, = GPIO_PORTF_BASE+GPIO_O_DR2R	;; Choix de l'intensité de sortie (2mA)
         ldr r0, = BROCHE4_5			
         str r0, [r6]
-		
-		mov r2, #0x000       					;; pour eteindre LED
+
+        mov r2, #0x000       					;; pour eteindre LED
      
-		; allumer la led broche 4 (BROCHE4_5)
-		mov r3, #BROCHE4_5		;; Allume LED1&2 portF broche 4&5 : 00110000
-		
+		; allumer la led broche 4 et 5(PIN4&PIN5)
+		mov r3, BROCHE4_5       					;; Allume portF broche 4 et 5 : 00110000
 		ldr r6, = GPIO_PORTF_BASE + (BROCHE4_5<<2)  ;; @data Register = @base + (mask<<2) ==> LED1
+
 		;vvvvvvvvvvvvvvvvvvvvvvvFin configuration LED 
-
 		
-		
-		;^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^CONFIGURATION Switcher 1
+		;^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^CONFIGURATION LED ETHERNET
 
-		ldr r7, = GPIO_PORTD_BASE+GPIO_I_PUR	;; Pul_up 
-        ldr r0, = BROCHE6		
+        ldr r5, = GPIO_PORTF_BASE+GPIO_O_DIR    ;; 1 Pin du portF en sortie (broche 2 et 3 : 00001100)
+        ldr r0, = BROCHE2_3
+        str r0, [r5]
+
+        ldr r5, = GPIO_PORTF_BASE+GPIO_O_DEN    ;; Enable Digital Function 
+        ldr r0, = BROCHE2_3
+        str r0, [r5]
+
+        ldr r5, = GPIO_PORTF_BASE+GPIO_O_DR2R    ;; Choix de l'intensité de sortie (2mA)
+        ldr r0, = BROCHE2_3
+        str r0, [r5]
+
+        ;vvvvvvvvvvvvvvvvvvvvvvvFin configuration LED ETHERNET
+		
+		;^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^CONFIGURATION BUMPER 1 & 2
+		
+		ldr r7, = GPIO_PORTE_BASE+GPIO_I_PUR	;; Pul_up 
+        ldr r0, = BROCHE0_1		
         str r0, [r7]
 		
-		ldr r7, = GPIO_PORTD_BASE+GPIO_O_DEN	;; Enable Digital Function 
-        ldr r0, = BROCHE6
+		ldr r7, = GPIO_PORTE_BASE+GPIO_O_DEN	;; Enable Digital Function 
+        ldr r0, = BROCHE0_1	
         str r0, [r7]     
 		
-		ldr r7, = GPIO_PORTD_BASE + (BROCHE6<<2)  ;; @data Register = @base + (mask<<2) ==> Switcher
-		;vvvvvvvvvvvvvvvvvvvvvvvFin configuration Switcher
+		;vvvvvvvvvvvvvvvvvvvvvvvFin configuration BUMPER 1 & 2
 		
+		;----------------------------------------------
 		
-		;^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^CONFIGURATION Bumper gauche
-		ldr r13, = GPIO_PORTE_BASE+GPIO_I_PUR	;; Pul_up 
-        ldr r0, = BROCHE0		
-        str r0, [r13]
+		;^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^CONFIGURATION SWITCH 1 & 2
 		
-		ldr r13, = GPIO_PORTE_BASE+GPIO_O_DEN	;; Enable Digital Function 
-        ldr r0, = BROCHE0
-        str r0, [r13]     
+		ldr r8, = GPIO_PORTD_BASE+GPIO_I_PUR	;; Pul_up 
+        ldr r0, = BROCHE6_7		
+        str r0, [r8]
 		
-		ldr r13, = GPIO_PORTE_BASE + (BROCHE0<<2)  ;; @data Register = @base + (mask<<2) ==> Switcher
-		;vvvvvvvvvvvvvvvvvvvvvvvFin configuration Switcher
+		ldr r8, = GPIO_PORTD_BASE+GPIO_O_DEN	;; Enable Digital Function 
+        ldr r0, = BROCHE6_7	
+        str r0, [r8]
 		
-		; Configure les PWM + GPIO
-		BL	MOTEUR_INIT
-		;; BL Branchement vers un lien (sous programme)
-		ldr r6, = GPIO_PORTF_BASE + (BROCHE4_5<<2)
+		;vvvvvvvvvvvvvvvvvvvvvvvFin configuration SWITCH 1 & 2
+		
+		  ;; @data Register = @base + (mask<<2) ==> Switcher
+		
 		str r3, [r6]
+		ldr r4, =0x00000F
+loop1
+        str r2, [r6]    						;; Eteint les deux LED     
+        ldr r1, = DUREE 						;; pour la duree de la boucle d'attente
 
+wait5	subs r1, #1
+        bne wait5
+
+        str r3, [r6]  							;; Allume les deux LED 
+        ldr r1, = DUREE							;; pour la duree de la boucle d'attente
+
+wait9   subs r1, #1
+        bne wait9
+		 
+		subs r4, #5
+		CMP r4, #1
+		BLE debut
+		B loop1
+         
+debut		
+		BL	MOTEUR_INIT	 
 		
-switch1
-	
-		ldr r12, [r7]
-		CMP r12,#0x00
-		BNE switch1
-			   		   
-		; Activer les deux moteurs droit et gauche
 		BL	MOTEUR_DROIT_ON
 		BL	MOTEUR_GAUCHE_ON
-
-		; Boucle de pilotage des 2 Moteurs (Evalbot tourne sur lui même)
-;loop	
-		; Evalbot avance droit devant
+loop		  		   
+		
+		; Activer les deux moteurs droit et gauche
+			
 		BL	MOTEUR_DROIT_ARRIERE	   
 		BL	MOTEUR_GAUCHE_ARRIERE
 		
-		; Avancement pendant une période (deux WAIT)
-		BL	WAIT	; BL (Branchement vers le lien WAIT); possibilité de retour à la suite avec (BX LR)
-		BL	WAIT
+;-----------------------------------------------------------------------------------
 		
-		; Rotation à droite de l'Evalbot pendant une demi-période (1 seul WAIT)
-		;BL	MOTEUR_DROIT_ARRIERE   ; MOTEUR_DROIT_INVERSE
-		;BL	WAIT
-
-
+ROTATION ;grande boucle où on détecte l'état d'un des deux bumpers ou les deux et l'état d'un des deux switchs
 		
-WAIT	ldr r1, =0xAFFFFF 
-								;; pour la duree de la boucle d'attente2 (wait2)
-wait13	
-		;Au moment de faire les rotations, pour pouvoir écouter les autres ports, à chaque fois qu'on rentre dans le wait faires clignoter les leds
-		; peut êtee mettre un compteur dans cette boucle pour ne pas activer les leds a chaque fois et faire une crise d'épilepsie 
-bump1	
-		  
-		ldr r14, [r13]
+bump_gauche ;detection du bumper droit ou gauche
+		ldr r8, = GPIO_PORTE_BASE + (BROCHE0<<2)
+		ldr r14, [r8]
 		CMP r14,#0x00
-		BNE bump1
+		BNE bump_droit
+
+		ldr r9, = GPIO_PORTE_BASE + (BROCHE1<<2)
+		ldr r10,[r9]
+		CMP r10,#0x00
+		BNE init_gauche
+		B inter
+		
+bump_droit ;detection du bumper droit ou gauche
+		ldr r8, = GPIO_PORTE_BASE + (BROCHE1<<2) ;bumper droit
+		ldr r14, [r8]
+		CMP r14, #0x00
+		BNE loop
+
+		ldr r9, = GPIO_PORTE_BASE + (BROCHE0<<2)
+		ldr r10,[r9]
+		CMP r10,#0x00
+		BNE init_droit
+		B inter
+		
+init_gauche
 		ldr	r6, =PWM0CMPA ;Valeur rapport cyclique : pour 10% => 1C2h si clock = 0F42400
-		mov	r0, 0x180; vitesse de la roue droite
+		mov	r0, #0x180; vitesse de la roue droite
 		str	r0, [r6]
 		BL	MOTEUR_DROIT_AVANT   ;fait tourner une roue dans l'autre sens moins vite pour tourner
 		ldr r6, = GPIO_PORTF_BASE + (BROCHE4_5<<2)
 		str r2, [r6]    						;; Eteint LED car r2 = 0x00 
 		ldr r6, = GPIO_PORTF_BASE + (0x10<<2)
 		str r3, [r6]
-		BL	WAIT5
-loop2
+		BL	TEMP
+
+rotation_gauche
 		ldr	r6, =PWM0CMPA ;Valeur rapport cyclique : pour 10% => 1C2h si clock = 0F42400
-		mov	r0, 0x100
+		mov	r0, #0x50
 		str	r0, [r6]
 		BL	MOTEUR_DROIT_ARRIERE
 		ldr r6, = GPIO_PORTF_BASE + (BROCHE4_5<<2)
+		str r3, [r6]	;; Eteint LED car r2 = 0x00
+		CMP r14,#0x00
+		BNE bump_gauche
+		b	rotation_gauche
+
+init_droit
+		ldr	r6, =PWM1CMPA ;Valeur rapport cyclique : pour 10% => 1C2h si clock = 0F42400
+		mov	r0, #0x180; vitesse de la roue droite
+		str	r0, [r6]
+		BL	MOTEUR_GAUCHE_AVANT   ;fait tourner une roue dans l'autre sens moins vite pour tourner
+		ldr r6, = GPIO_PORTF_BASE + (BROCHE4_5<<2)
+		str r2, [r6]    						;; Eteint LED car r2 = 0x00 
+		ldr r6, = GPIO_PORTF_BASE + (0x20<<2)
+		str r3, [r6]
+		BL	TEMP
+		
+rotation_droite
+		ldr	r6, =PWM1CMPA ;Valeur rapport cyclique : pour 10% => 1C2h si clock = 0F42400
+		mov	r0, #0x50
+		str	r0, [r6]
+		BL	MOTEUR_GAUCHE_ARRIERE
+		ldr r6, = GPIO_PORTF_BASE + (BROCHE4_5<<2)
 		str r3, [r6]
 		CMP r14,#0x00
-		BNE bump1
-		b	loop2
-WAIT5	ldr r1, = 0xEFFFF
+		BNE bump_droit
+		b	rotation_droite
+
+TEMP	ldr r1, =0xEFFFF
 wait6	subs r1, #1
-        bne wait6	
-        bne wait13
-		;; retour à la suite du lien de branchement
+        bne wait6
+		bne ROTATION
+		;; retour à la suite d u lien de branchement
 		BX	LR
-		NOP
+		
+;------------------------------------------------------------------------------------------------
+inter
+		BL	MOTEUR_DROIT_OFF
+		BL	MOTEUR_GAUCHE_OFF
+		BL WAIT
+		
+ReadState3
+		ldr r8, = GPIO_PORTD_BASE + (BROCHE6<<2)    ;essayer un intermediaire!!!!!!!!!!!!!!!!!!!!
+		ldr r10, [r8]
+		CMP r10,#0x00
+		BNE ReadState4
+		B win
+
+ReadState4
+		ldr r8, = GPIO_PORTD_BASE + (BROCHE7<<2)
+		ldr r10, [r8]
+		CMP r10,#0x00
+		BNE ReadState2
+		B lost
+
+ReadState2
+		ldr r7, = GPIO_PORTE_BASE + (BROCHE0_1<<2)
+		ldr r11,[r7]
+		CMP r11,#0x00
+		BNE ReadState3
+		
+		BL WAIT
+		BL WAIT
+		BL WAIT
+		BL WAIT
+		
+		BL	MOTEUR_DROIT_ON
+		BL	MOTEUR_GAUCHE_ON
+		
+		BL	MOTEUR_DROIT_AVANT
+		BL	MOTEUR_GAUCHE_AVANT
+		BL WAIT
+		BL WAIT
+		BL WAIT
+		BL WAIT
+		BL WAIT
+		BL WAIT
+		BL WAIT
+		BL WAIT
+		BL WAIT
+		
+		B loop1
+		
+win		
+		BL MOTEUR_DROIT_ON
+		BL MOTEUR_GAUCHE_ON
+
+loop2	
+		BL MOTEUR_DROIT_AVANT
+		BL MOTEUR_GAUCHE_ARRIERE
+        ldr r1, = DUREE 						
+wait1	subs r1, #1
+        bne wait1
+
+        BL MOTEUR_DROIT_ARRIERE
+		BL MOTEUR_GAUCHE_AVANT
+		ldr r6, = GPIO_PORTF_BASE + (BROCHE4_5<<2) 
+		str r2, [r6]     ;; Eteint portF broche 4 et 5 : les deux leds
+        ldr r1, = DUREE		;; ils sont éteints pendant la durée indiqué	
+
+wait2   subs r1, #1
+        bne wait2
+		
+        str r3, [r6]   ;; Allume portF broche 4 et 5 : les deux leds
+        ldr r1, = DUREE ;; ils sont éteints pendant la durée indiqué
+
+        b loop2
+		
+lost
+
+		ldr r6, = PWM0CTL
+		mov	r0, #2		;Mode up-down-up-down, pas synchro
+        str r0, [r6]	
+		
+		ldr r6, =PWM0GENA ;en decomptage, qd comparateurA = compteur => sortie pwmA=0
+						;en comptage croissant, qd comparateurA = compteur => sortie pwmA=1
+		mov	r0,	#0x0B0 	;0B0=10110000 => ACTCMPBD=00 (B down:rien), ACTCMPBU=00(B up rien)
+		str r0, [r6]	;ACTCMPAD=10 (A down:pwmA low), ACTCMPAU=11 (A up:pwmA high) , ACTLOAD=00,ACTZERO=00  
+		
+		ldr r6, =PWM0GENB;en comptage croissant, qd comparateurB = compteur => sortie pwmA=1
+		mov	r0,	#0x0B00	;en decomptage, qd comparateurB = compteur => sortie pwmB=0
+		str r0, [r6]	
+	;Config Compteur, comparateur A et comparateur B
+  	;;#define PWM_PERIOD (ROM_SysCtlClockGet() / 16000),
+	;;en mesure : SysCtlClockGet=0F42400h, /16=0x3E8, 
+	;;on divise par 2 car moteur 6v sur alim 12v
+		ldr	r6, =PWM0LOAD ;PWM0LOAD=periode/2 =0x1F4
+		mov r0,	#0x1F4
+		str	r0,[r6]
+		
+		ldr	r6, =PWM0CMPA ;Valeur rapport cyclique : pour 10% => 1C2h si clock = 0F42400
+		mov	r0, #0x192
+		str	r0, [r6]  
+		
+		ldr	r6, =PWM0CMPB ;PWM0CMPB recoit meme valeur. (rapport cyclique depend de CMPA)
+		mov	r0,	#0x1F4	
+		str	r0,	[r6]
+		
+	;Control PWM : active PWM Generator 0 (p1167): Enable+up/down + Enable counter debug mod
+		ldr	r6, =PWM0CTL 
+		ldr	r0, [r6]	
+		ORR	r0,	r0,	#0x07
+		str	r0,	[r6]
+
+	;;-----------PWM2 pour moteur 2 connecté à PH0
+	;;PWM1block produit PWM2 et PWM3 output
+		;;Config Modes PWM2 + mode GenA + mode GenB
+		ldr r6, = PWM1CTL
+		mov	r0, #2		;Mode up-down-up-down, pas synchro
+        str r0, [r6]	;*(int *)(0x40028000+0x040)=2;
+		
+		ldr r6, =PWM1GENA ;en decomptage, qd comparateurA = compteur => sortie pwmA=0
+						;en comptage croissant, qd comparateurA = compteur => sortie pwmA=1
+		mov	r0,	#0x0B0 	;0B0=10110000 => ACTCMPBD=00 (B down:rien), ACTCMPBU=00(B up rien)
+		str r0, [r6]	;ACTCMPAD=10 (A down:pwmA low), ACTCMPAU=11 (A up:pwmA high) , ACTLOAD=00,ACTZERO=00  
+		
+ 		;*(int *)(0x40028000+0x060)=0x0B0; //
+		ldr r6, =PWM1GENB	;*(int *)(0x40028000+0x064)=0x0B00;
+		mov	r0,	#0x0B00	;en decomptage, qd comparateurB = compteur => sortie pwmB=0
+		str r0, [r6]	;en comptage croissant, qd comparateurB = compteur => sortie pwmA=1
+	;Config Compteur, comparateur A et comparateur B
+  	;;#define PWM_PERIOD (ROM_SysCtlClockGet() / 16000),
+	;;en mesure : SysCtlClockGet=0F42400h, /16=0x3E8, 
+	;;on divise par 2 car moteur 6v sur alim 12v
+		;*(int *)(0x40028000+0x050)=0x1F4; //PWM0LOAD=periode/2 =0x1F4
+		ldr	r6, =PWM1LOAD
+		mov r0,	#0x1F4
+		str	r0,[r6]
+		
+		ldr	r6, =PWM1CMPA ;Valeur rapport cyclique : pour 10% => 1C2h si clock = 0F42400
+		mov	r0,	0x192
+		str	r0, [r6]  ;*(int *)(0x40028000+0x058)=0x01C2;
+		
+		ldr	r6, =PWM1CMPB ;PWM0CMPB recoit meme valeur. (CMPA depend du rapport cyclique)
+		mov	r0,	#0x1F4	; *(int *)(0x40028000+0x05C)=0x1F4; 
+		str	r0,	[r6]
+		
+		;Control PWM : active PWM Generator 0 (p1167): Enable+up/down + Enable counter debug mod
+		ldr	r6, =PWM1CTL 
+		ldr	r0, [r6]	;*(int *) (0x40028000+0x40)= *(int *)(0x40028000+0x40) | 0x07;
+		ORR	r0,	r0,	#0x07
+		str	r0,	[r6]
+		
+		ldr r6, = GPIO_PORTF_BASE + (BROCHE4_5<<2) 
+		str r2, [r6]     ;; Eteint les deux leds
+		
+		BL MOTEUR_DROIT_ON
+		BL MOTEUR_GAUCHE_ON
+		
+		BL MOTEUR_DROIT_AVANT
+		BL MOTEUR_GAUCHE_ARRIERE
+
+		
+WAIT	ldr r1, =0x0FFFFF 
+wait3	subs r1, #1
+        bne wait3
+		
+		;; retour à la suite du lien de branchement
+		BX	LR     
+		
+		nop		
         END
