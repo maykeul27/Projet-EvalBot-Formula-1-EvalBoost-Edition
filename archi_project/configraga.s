@@ -263,7 +263,6 @@ rotation_droite
 		ldr r6, = GPIO_PORTF_BASE + (BROCHE4_5<<2)
 		str r3, [r6]
 		CMP r14,#0x00
-<<<<<<< HEAD
 		BNE bump_droit
 		b	rotation_droite
 
@@ -272,27 +271,6 @@ wait6	subs r1, #1
         bne wait6
 		bne ROTATION
 		;; retour à la suite d u lien de branchement
-=======
-		BNE bump1
-		b	loop2
-<<<<<<< HEAD
-WAIT5	ldr r1, =0xEFFFF
-;wait6	subs r1, #1 probablement inute
-        ;bne wait6
-		
-||||||| 8fad279
-WAIT5	ldr r1, =0xEFFFF
-wait6	subs r1, #1
-        bne wait6
-		
-=======
-WAIT5	ldr r1, = 0xEFFFF
-wait6	subs r1, #1
-        bne wait6	
->>>>>>> 9e52ac78a6a6cc7d7ac5ff94121a247c06b4a901
-        bne wait13
-		;; retour à la suite du lien de branchement
->>>>>>> 08b3340c267f243c354c35905d9be3dbe3465430
 		BX	LR
 		
 ;------------------------------------------------------------------------------------------------
