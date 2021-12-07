@@ -49,7 +49,7 @@
             <InvalidFlash>1</InvalidFlash>
           </TargetStatus>
           <OutputDirectory>.\Objects\</OutputDirectory>
-          <OutputName>project_bump</OutputName>
+          <OutputName>evalbot</OutputName>
           <CreateExecutable>1</CreateExecutable>
           <CreateLib>0</CreateLib>
           <CreateHexFile>0</CreateHexFile>
@@ -134,10 +134,10 @@
             <RunIndependent>0</RunIndependent>
             <UpdateFlashBeforeDebugging>1</UpdateFlashBeforeDebugging>
             <Capability>1</Capability>
-            <DriverSelection>4096</DriverSelection>
+            <DriverSelection>4104</DriverSelection>
           </Flash1>
           <bUseTDR>1</bUseTDR>
-          <Flash2>BIN\UL2CM3.DLL</Flash2>
+          <Flash2>BIN\lmidk-agdi.dll</Flash2>
           <Flash3>"" ()</Flash3>
           <Flash4></Flash4>
           <pFcarmOut></pFcarmOut>
@@ -383,14 +383,14 @@
           <GroupName>Source Group 1</GroupName>
           <Files>
             <File>
-              <FileName>stellar.s</FileName>
-              <FileType>2</FileType>
-              <FilePath>.\stellar.s</FilePath>
-            </File>
-            <File>
               <FileName>config.s</FileName>
               <FileType>2</FileType>
               <FilePath>.\config.s</FilePath>
+            </File>
+            <File>
+              <FileName>test_bump.s</FileName>
+              <FileType>2</FileType>
+              <FilePath>.\test_bump.s</FilePath>
             </File>
           </Files>
         </Group>

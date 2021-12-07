@@ -1,4 +1,3 @@
-
 ;; RK - Evalbot (Cortex M3 de Texas Instrument)
 ; programme - Pilotage 2 Moteurs Evalbot par PWM tout en ASM (Evalbot tourne sur lui même)
 
@@ -32,12 +31,17 @@ GPIO_I_PUR   		EQU 	0x00000510  ; GPIO Pull-Up (p432 datasheet de lm3s9B92.pdf)
 
 ; Broches select
 BROCHE4_5			EQU		0x30		; led1 & led2 sur broche 4 et 5
+;ethernet led	
+BROCHE2_3			EQU		0x3C		; led1 & led2 sur broche 2 et 3
 
 BROCHE6				EQU 	0x40		; bouton poussoir 1
 
-;BROCHE0				EQU     0x01 		;Bumper
-BROCHE1				EQU     0x02 				;Bumper
+BROCHE0				EQU     0x01 				;Bumper_gauhce
+BROCHE1				EQU     0x02 				;Bumper_droit
+	
+BROCHE0_1			EQU 	0x03				;Les deux bumpers
 PWM_BASE			EQU		0x040028000 	   ;BASE des Block PWM p.1138
+PWM0CMPA			EQU		PWM_BASE+0x058
 PWM1CMPA			EQU		PWM_BASE+0x098 
 
    
@@ -97,9 +101,29 @@ __main
 		mov r3, #BROCHE4_5		;; Allume LED1&2 portF broche 4&5 : 00110000
 		
 		ldr r6, = GPIO_PORTF_BASE + (BROCHE4_5<<2)  ;; @data Register = @base + (mask<<2) ==> LED1
-		;vvvvvvvvvvvvvvvvvvvvvvvFin configuration LED 
+		;vvvvvvvvvvvvvvvvvvvvvvvFin configuration LED
 
+		;^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^CONFIGURATION LED ETHERNET
+
+        ldr r5, = GPIO_PORTF_BASE+GPIO_O_DIR    ;; 1 Pin du portF en sortie (broche 4 : 00010000)
+        ldr r0, = BROCHE2_3 	
+        str r0, [r5]
 		
+		ldr r5, = GPIO_PORTF_BASE+GPIO_O_DEN	;; Enable Digital Function 
+        ldr r0, = BROCHE2_3		
+        str r0, [r5]
+		
+		ldr r5, = GPIO_PORTF_BASE+GPIO_O_DR2R	;; Choix de l'intensité de sortie (2mA)
+        ldr r0, = BROCHE2_3			
+        str r0, [r5]
+		
+		;mov r9, #0x000       					;; pour eteindre LED
+     
+		; allumer la led broche 4 (BROCHE4_5)
+		;mov r3, #BROCHE2_3		;; Allume LED1&2 portF broche 4&5 : 00110000
+		
+		;ldr r5, = GPIO_PORTF_BASE + (BROCHE2_3<<2)  ;; @data Register = @base + (mask<<2) ==> LED1
+		;vvvvvvvvvvvvvvvvvvvvvvvFin configuration LED
 		
 		;^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^CONFIGURATION Switcher 1
 
@@ -111,42 +135,28 @@ __main
         ldr r0, = BROCHE6
         str r0, [r7]
 
-        ldr r7, = GPIO_PORTD_BASE + (BROCHE6<<2)  ;; @data Register = @base + (mask<<2) ==> Switcher
-        ;vvvvvvvvvvvvvvvvvvvvvvvFin configuration Switcher
+        ldr r7, = GPIO_PORTD_BASE + (BROCHE6<<2)  	
 		
- 
 		
-		;^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^CONFIGURATION Bumper gauche
-		;ldr r13, = GPIO_PORTE_BASE+GPIO_I_PUR	;; Pul_up 
-        ;ldr r0, = BROCHE0		
-        ;str r0, [r13]
 		
-		;ldr r13, = GPIO_PORTE_BASE+GPIO_O_DEN	;; Enable Digital Function 
-        ;ldr r0, = BROCHE0
-        ;str r0, [r13]     
-		
-		;ldr r13, = GPIO_PORTE_BASE + (BROCHE0<<2)  ;; @data Register = @base + (mask<<2) ==> Switcher
- 
-		;^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^CONFIGURATION Bumper droit
 		ldr r8, = GPIO_PORTE_BASE+GPIO_I_PUR	;; Pul_up 
-        ldr r0, = BROCHE1		
+        ldr r0, = BROCHE0_1		
         str r0, [r8]
 		
 		ldr r8, = GPIO_PORTE_BASE+GPIO_O_DEN	;; Enable Digital Function 
-        ldr r0, = BROCHE1
+        ldr r0, = BROCHE0_1
         str r0, [r8]     
 		
-		ldr r8, = GPIO_PORTE_BASE + (BROCHE1<<2)
-   
-		;vvvvvvvvvvvvvvvvvvvvvvvFin configuration Switcher
-		
+
 		
 		; Configure les PWM + GPIO
 		BL	MOTEUR_INIT
 		;; BL Branchement vers un lien (sous programme)
 		ldr r6, = GPIO_PORTF_BASE + (BROCHE4_5<<2)
 		str r3, [r6]
-
+   
+		;vvvvvvvvvvvvvvvvvvvvvvvFin configuration Switcher
+		
 		
 switch1
 	
@@ -183,34 +193,71 @@ wait2 	subs r1,#1
 		b clignotement
 WAIT	ldr r1, =0xAFFFFF 
 								;; pour la duree de la boucle d'attente2 (wait2)
-wait13	
+ROTATION
 		;Au moment de faire les rotations, pour pouvoir écouter les autres ports, à chaque fois qu'on rentre dans le wait faires clignoter les leds
-		; peut êtee mettre un compteur dans cette boucle pour ne pas activer les leds a chaque fois et faire une crise d'épilepsie 
-bump1		
-		;b	loop
+		; peut être mettre un compteur dans cette boucle pour ne pas activer les leds a chaque fois et faire une crise d'épilepsie 
+bump_gauche
+		ldr r8, = GPIO_PORTE_BASE + (BROCHE0<<2)
 		ldr r14, [r8]
 		CMP r14,#0x00
-		BNE bump1
-		ldr	r6, =PWM1CMPA ;Valeur rapport cyclique : pour 10% => 1C2h si clock = 0F42400
-		mov	r0, #0x182 ; vitesse de la roue gauche
-		str	r0, [r6]
+		BNE bump_droit
+		b init_gauche
 		
+bump_droit
+		ldr r8, = GPIO_PORTE_BASE + (BROCHE1<<2) ;bumper droit
+		ldr r14, [r8]
+		CMP r14, #0x00
+		BNE bump_gauche
+		b init_droit
+init_gauche
+		ldr	r6, =PWM0CMPA ;Valeur rapport cyclique : pour 10% => 1C2h si clock = 0F42400
+		mov	r0, #0x180; vitesse de la roue droite
+		str	r0, [r6]
+		BL	MOTEUR_DROIT_AVANT   ;fait tourner une roue dans l'autre sens moins vite pour tourner
+		ldr r6, = GPIO_PORTF_BASE + (BROCHE4_5<<2)
+		str r2, [r6]    						;; Eteint LED car r2 = 0x00 
+		ldr r6, = GPIO_PORTF_BASE + (0x10<<2)
+		str r3, [r6]
+		BL	TEMP
+
+rotation_gauche
+		ldr	r6, =PWM0CMPA ;Valeur rapport cyclique : pour 10% => 1C2h si clock = 0F42400
+		mov	r0, #0x50
+		str	r0, [r6]
+		BL	MOTEUR_DROIT_ARRIERE
+		ldr r6, = GPIO_PORTF_BASE + (BROCHE4_5<<2)
+		str r3, [r6]	;; Eteint LED car r2 = 0x00
+		CMP r14,#0x00
+		BNE bump_gauche
+		b	rotation_gauche
+
+init_droit
+		ldr	r6, =PWM1CMPA ;Valeur rapport cyclique : pour 10% => 1C2h si clock = 0F42400
+		mov	r0, #0x180; vitesse de la roue droite
+		str	r0, [r6]
 		BL	MOTEUR_GAUCHE_AVANT   ;fait tourner une roue dans l'autre sens moins vite pour tourner
-		BL	WAIT5
-loop2
+		ldr r6, = GPIO_PORTF_BASE + (BROCHE4_5<<2)
+		str r2, [r6]    						;; Eteint LED car r2 = 0x00 
+		ldr r6, = GPIO_PORTF_BASE + (0x20<<2)
+		str r3, [r6]
+		BL	TEMP
+		
+rotation_droite
 		ldr	r6, =PWM1CMPA ;Valeur rapport cyclique : pour 10% => 1C2h si clock = 0F42400
 		mov	r0, #0x50
 		str	r0, [r6]
 		BL	MOTEUR_GAUCHE_ARRIERE
+		ldr r6, = GPIO_PORTF_BASE + (BROCHE4_5<<2)
+		str r3, [r6]
 		CMP r14,#0x00
-		BNE bump1
-		b	loop2
-WAIT5	ldr r1, =0xEFFFF
+		BNE bump_droit
+		b	rotation_droite
+
+TEMP	ldr r1, =0xEFFFF
 wait6	subs r1, #1
         bne wait6
-		
-        bne wait13
-		;; retour à la suite du lien de branchement
+		bne ROTATION
+		;; retour à la suite d u lien de branchement
 		BX	LR
 		NOP
         END
