@@ -31,6 +31,10 @@ GPIO_PORTD_BASE		EQU		0x40007000
 GPIO_I_PUR   		EQU 	0x00000510
 	
 BROCHE0_1		   		EQU 	0x03
+	
+BROCHE0		   		EQU 	0x01
+	
+BROCHE1		   		EQU 	0x02
 
 ; configure the corresponding pin to be an output
 ; all GPIO pins are inputs by default
@@ -45,9 +49,11 @@ GPIO_O_DR2R   		EQU 	0x00000500  ; GPIO 2-mA Drive Select (p428 datasheet de lm3
 GPIO_O_DEN   		EQU 	0x0000051C  ; GPIO Digital Enable (p437 datasheet de lm3s9B92.pdf)
 
 ; PIN select
-PIN4_5				EQU		0x30		; led1 sur broche 4
+BROCHE4_5				EQU		0x30		; led1 sur broche 4
 	
-BROCHE6_7			EQU 	0xC0		
+BROCHE6_7			EQU 	0xC0
+
+BROCHE2_3            EQU        0x3C        ; led1 & led2 sur broche 2 et 3
 	
 BROCHE6				EQU 	0x40
 	
@@ -93,24 +99,40 @@ __main
 		;^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^CONFIGURATION LED
 
         ldr r6, = GPIO_PORTF_BASE+GPIO_O_DIR    ;; 1 Pin du portF en sortie (broche 4 : 00010000)
-        ldr r0, = PIN4_5 	
+        ldr r0, = BROCHE4_5	
         str r0, [r6]
 		
         ldr r6, = GPIO_PORTF_BASE+GPIO_O_DEN	;; Enable Digital Function 
-        ldr r0, = PIN4_5 		
+        ldr r0, = BROCHE4_5 		
         str r0, [r6]
  
 		ldr r6, = GPIO_PORTF_BASE+GPIO_O_DR2R	;; Choix de l'intensité de sortie (2mA)
-        ldr r0, = PIN4_5			
+        ldr r0, = BROCHE4_5			
         str r0, [r6]
 
         mov r2, #0x000       					;; pour eteindre LED
      
 		; allumer la led broche 4 (PIN4)
-		mov r3, #PIN4_5       					;; Allume portF broche 4 : 00010000
-		ldr r6, = GPIO_PORTF_BASE + (PIN4_5<<2)  ;; @data Register = @base + (mask<<2) ==> LED1
+		mov r3, BROCHE4_5       					;; Allume portF broche 4 : 00010000
+		ldr r6, = GPIO_PORTF_BASE + (BROCHE4_5<<2)  ;; @data Register = @base + (mask<<2) ==> LED1
 
 		;vvvvvvvvvvvvvvvvvvvvvvvFin configuration LED 
+		
+		;^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^CONFIGURATION LED ETHERNET
+
+        ldr r5, = GPIO_PORTF_BASE+GPIO_O_DIR    ;; 1 Pin du portF en sortie (broche 4 : 00010000)
+        ldr r0, = BROCHE2_3
+        str r0, [r5]
+
+        ldr r5, = GPIO_PORTF_BASE+GPIO_O_DEN    ;; Enable Digital Function 
+        ldr r0, = BROCHE2_3
+        str r0, [r5]
+
+        ldr r5, = GPIO_PORTF_BASE+GPIO_O_DR2R    ;; Choix de l'intensité de sortie (2mA)
+        ldr r0, = BROCHE2_3
+        str r0, [r5]
+
+        ;vvvvvvvvvvvvvvvvvvvvvvvFin configuration LED
 		
 		ldr r7, = GPIO_PORTE_BASE+GPIO_I_PUR	;; Pul_up 
         ldr r0, = BROCHE0_1		
@@ -119,8 +141,6 @@ __main
 		ldr r7, = GPIO_PORTE_BASE+GPIO_O_DEN	;; Enable Digital Function 
         ldr r0, = BROCHE0_1	
         str r0, [r7]     
-		
-		ldr r7, = GPIO_PORTE_BASE + (BROCHE0_1<<2)  ;; @data Register = @base + (mask<<2) ==> Switcher
 		
 		
 		;----------------------------------------------
@@ -147,8 +167,8 @@ wait5	subs r1, #1
         str r3, [r6]  							;; Allume portF broche 4 : 00010000 (contenu de r3)
         ldr r1, = DUREE							;; pour la duree de la boucle d'attente2 (wait2)
 
-wait6   subs r1, #1
-        bne wait6
+wait9   subs r1, #1
+        bne wait9
 		 
 		subs r4, #5
 		CMP r4, #1
@@ -167,12 +187,88 @@ loop
 		BL	MOTEUR_DROIT_ARRIERE	   
 		BL	MOTEUR_GAUCHE_ARRIERE
 		
-ReadState
-	
-		ldr r10,[r7]
-		CMP r10,#0x00
-		BNE ReadState 
+;-----------------------------------------------------------------------------------
+		
+ROTATION
+		;Au moment de faire les rotations, pour pouvoir écouter les autres ports, à chaque fois qu'on rentre dans le wait faires clignoter les leds
+		; peut être mettre un compteur dans cette boucle pour ne pas activer les leds a chaque fois et faire une crise d'épilepsie 
+bump_gauche
+		ldr r8, = GPIO_PORTE_BASE + (BROCHE0<<2)
+		ldr r14, [r8]
+		CMP r14,#0x00
+		BNE bump_droit
 
+		ldr r9, = GPIO_PORTE_BASE + (BROCHE1<<2)
+		ldr r10,[r9]
+		CMP r10,#0x00
+		BNE init_gauche
+		B inter
+		
+bump_droit
+		ldr r8, = GPIO_PORTE_BASE + (BROCHE1<<2) ;bumper droit
+		ldr r14, [r8]
+		CMP r14, #0x00
+		BNE loop
+
+		ldr r9, = GPIO_PORTE_BASE + (BROCHE0<<2)
+		ldr r10,[r9]
+		CMP r10,#0x00
+		BNE init_droit
+		B inter
+		
+init_gauche
+		ldr	r6, =PWM0CMPA ;Valeur rapport cyclique : pour 10% => 1C2h si clock = 0F42400
+		mov	r0, #0x180; vitesse de la roue droite
+		str	r0, [r6]
+		BL	MOTEUR_DROIT_AVANT   ;fait tourner une roue dans l'autre sens moins vite pour tourner
+		ldr r6, = GPIO_PORTF_BASE + (BROCHE4_5<<2)
+		str r2, [r6]    						;; Eteint LED car r2 = 0x00 
+		ldr r6, = GPIO_PORTF_BASE + (0x10<<2)
+		str r3, [r6]
+		BL	TEMP
+
+rotation_gauche
+		ldr	r6, =PWM0CMPA ;Valeur rapport cyclique : pour 10% => 1C2h si clock = 0F42400
+		mov	r0, #0x50
+		str	r0, [r6]
+		BL	MOTEUR_DROIT_ARRIERE
+		ldr r6, = GPIO_PORTF_BASE + (BROCHE4_5<<2)
+		str r3, [r6]	;; Eteint LED car r2 = 0x00
+		CMP r14,#0x00
+		BNE bump_gauche
+		b	rotation_gauche
+
+init_droit
+		ldr	r6, =PWM1CMPA ;Valeur rapport cyclique : pour 10% => 1C2h si clock = 0F42400
+		mov	r0, #0x180; vitesse de la roue droite
+		str	r0, [r6]
+		BL	MOTEUR_GAUCHE_AVANT   ;fait tourner une roue dans l'autre sens moins vite pour tourner
+		ldr r6, = GPIO_PORTF_BASE + (BROCHE4_5<<2)
+		str r2, [r6]    						;; Eteint LED car r2 = 0x00 
+		ldr r6, = GPIO_PORTF_BASE + (0x20<<2)
+		str r3, [r6]
+		BL	TEMP
+		
+rotation_droite
+		ldr	r6, =PWM1CMPA ;Valeur rapport cyclique : pour 10% => 1C2h si clock = 0F42400
+		mov	r0, #0x50
+		str	r0, [r6]
+		BL	MOTEUR_GAUCHE_ARRIERE
+		ldr r6, = GPIO_PORTF_BASE + (BROCHE4_5<<2)
+		str r3, [r6]
+		CMP r14,#0x00
+		BNE bump_droit
+		b	rotation_droite
+
+TEMP	ldr r1, =0xEFFFF
+wait6	subs r1, #1
+        bne wait6
+		bne ROTATION
+		;; retour à la suite d u lien de branchement
+		BX	LR
+		
+;------------------------------------------------------------------------------------------------
+inter
 		BL	MOTEUR_DROIT_OFF
 		BL	MOTEUR_GAUCHE_OFF
 		BL WAIT
@@ -192,10 +288,15 @@ ReadState4
 		B lost
 
 ReadState2
-
+		ldr r7, = GPIO_PORTE_BASE + (BROCHE0_1<<2)
 		ldr r11,[r7]
 		CMP r11,#0x00
 		BNE ReadState3
+		
+		BL WAIT
+		BL WAIT
+		BL WAIT
+		BL WAIT
 		
 		BL	MOTEUR_DROIT_ON
 		BL	MOTEUR_GAUCHE_ON
@@ -328,5 +429,3 @@ wait3	subs r1, #1
 		
 		nop		
         END 
-
-
