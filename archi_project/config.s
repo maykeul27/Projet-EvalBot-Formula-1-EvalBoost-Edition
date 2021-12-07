@@ -1,4 +1,3 @@
-
 ;; RK - Evalbot (Cortex M3 de Texas Instrument)
 ; programme - Pilotage 2 Moteurs Evalbot par PWM tout en ASM (Evalbot tourne sur lui même)
 
@@ -32,10 +31,14 @@ GPIO_I_PUR   		EQU 	0x00000510  ; GPIO Pull-Up (p432 datasheet de lm3s9B92.pdf)
 
 ; Broches select
 BROCHE4_5			EQU		0x30		; led1 & led2 sur broche 4 et 5
+;ethernet led	
+BROCHE2_3			EQU		0x3C		; led1 & led2 sur broche 2 et 3
+
 BROCHE6				EQU 	0x40		; bouton poussoir 1
 
 BROCHE0				EQU     0x01 				;Bumper_gauhce
 BROCHE1				EQU     0x02 				;Bumper_droit
+	
 BROCHE0_1			EQU 	0x03				;Les deux bumpers
 PWM_BASE			EQU		0x040028000 	   ;BASE des Block PWM p.1138
 PWM0CMPA			EQU		PWM_BASE+0x058
@@ -98,9 +101,29 @@ __main
 		mov r3, #BROCHE4_5		;; Allume LED1&2 portF broche 4&5 : 00110000
 		
 		ldr r6, = GPIO_PORTF_BASE + (BROCHE4_5<<2)  ;; @data Register = @base + (mask<<2) ==> LED1
-		;vvvvvvvvvvvvvvvvvvvvvvvFin configuration LED 
+		;vvvvvvvvvvvvvvvvvvvvvvvFin configuration LED
 
+		;^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^CONFIGURATION LED ETHERNET
+
+        ldr r5, = GPIO_PORTF_BASE+GPIO_O_DIR    ;; 1 Pin du portF en sortie (broche 4 : 00010000)
+        ldr r0, = BROCHE2_3 	
+        str r0, [r5]
 		
+		ldr r5, = GPIO_PORTF_BASE+GPIO_O_DEN	;; Enable Digital Function 
+        ldr r0, = BROCHE2_3		
+        str r0, [r5]
+		
+		ldr r5, = GPIO_PORTF_BASE+GPIO_O_DR2R	;; Choix de l'intensité de sortie (2mA)
+        ldr r0, = BROCHE2_3			
+        str r0, [r5]
+		
+		;mov r9, #0x000       					;; pour eteindre LED
+     
+		; allumer la led broche 4 (BROCHE4_5)
+		;mov r3, #BROCHE2_3		;; Allume LED1&2 portF broche 4&5 : 00110000
+		
+		;ldr r5, = GPIO_PORTF_BASE + (BROCHE2_3<<2)  ;; @data Register = @base + (mask<<2) ==> LED1
+		;vvvvvvvvvvvvvvvvvvvvvvvFin configuration LED
 		
 		;^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^CONFIGURATION Switcher 1
 
