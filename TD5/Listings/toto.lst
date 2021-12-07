@@ -1,0 +1,15 @@
+
+
+
+ARM Macro Assembler    Page 1 
+
+
+                       
+Command Line: --debug --xref --diag_suppress=9931 --cpu=Cortex-M3 --apcs=interw
+ork --depend=.\objects\toto.d -o.\objects\toto.o -I.\RTE\_Target_1 -IC:\Users\s
+edob\AppData\Local\Arm\Packs\ARM\CMSIS\5.8.0\CMSIS\Core\Include -IC:\Users\sedo
+b\AppData\Local\Arm\Packs\ARM\CMSIS\5.8.0\Device\ARM\ARMCM3\Include --predefine
+="__EVAL SETA 1" --predefine="__MICROLIB SETA 1" --predefine="__UVISION_VERSION
+ SETA 528" --predefine="_RTE_ SETA 1" --predefine="ARMCM3 SETA 1" --list=.\list
+ings\toto.lst toto.s
+335 symbols in table
