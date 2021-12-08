@@ -250,13 +250,13 @@ N
   110 00000020 F04F 0030       ldr              r0, = BROCHE4_5
   111 00000024 6030            str              r0, [r6]
   112 00000026         
-  113 00000026 F04F 0200       mov              r2, #0x000  ;; pour eteindre LE
+  113 00000026 F04F 0200       mov              r2, #0x00   ;; pour eteindre LE
                                                             D
   114 0000002A         
   115 0000002A         ; allumer la led broche 4 et 5(PIN4&PIN5)
-  116 0000002A F04F 0330       mov              r3, BROCHE4_5 ;; Allume portF b
-                                                            roche 4 et 5 : 0011
-                                                            0000
+  116 0000002A F04F 0330       mov              r3, #BROCHE4_5 ;; Allume portF 
+                                                            broche 4 et 5 : 001
+                                                            10000
   117 0000002E 4E9E            ldr              r6, = GPIO_PORTF_BASE + (BROCHE
 
 
@@ -346,16 +346,16 @@ N
   163 00000070         ;; @data Register = @base + (mask<<2) ==> Switcher
   164 00000070         
   165 00000070 6033            str              r3, [r6]
-  166 00000072 F04F 040F       ldr              r4, =0x00000F
-  167 00000076         loop1
+  166 00000072 F04F 040F       ldr              r4, = 0x00000F
+  167 00000076         clignotement
   168 00000076 6032            str              r2, [r6]    ;; Eteint les deux 
                                                             LED     
   169 00000078 4990            ldr              r1, = DUREE ;; pour la duree de
                                                              la boucle d'attent
                                                             e
   170 0000007A         
-  171 0000007A 3901    wait5   subs             r1, #1
-  172 0000007C D1FD            bne              wait5
+  171 0000007A 3901    WAIT5   subs             r1, #1
+  172 0000007C D1FD            bne              WAIT5
   173 0000007E         
   174 0000007E 6033            str              r3, [r6]    ;; Allume les deux 
                                                             LED 
@@ -363,20 +363,20 @@ N
                                                              la boucle d'attent
                                                             e
   176 00000082         
-  177 00000082 3901    wait9   subs             r1, #1
-  178 00000084 D1FD            bne              wait9
+  177 00000082 3901    WAIT9   subs             r1, #1
+  178 00000084 D1FD            bne              WAIT9
   179 00000086         
   180 00000086 3C05            subs             r4, #5
   181 00000088 2C01            CMP              r4, #1
   182 0000008A DD00            BLE              debut
-  183 0000008C E7F3            B                loop1
+  183 0000008C E7F3            B                clignotement
   184 0000008E         
   185 0000008E         debut
   186 0000008E F7FF FFFE       BL               MOTEUR_INIT
   187 00000092         
   188 00000092 F7FF FFFE       BL               MOTEUR_DROIT_ON
   189 00000096 F7FF FFFE       BL               MOTEUR_GAUCHE_ON
-  190 0000009A         loop
+  190 0000009A         activ
   191 0000009A         
   192 0000009A         ; Activer les deux moteurs droit et gauche
   193 0000009A         
@@ -411,7 +411,7 @@ ARM Macro Assembler    Page 7
 1<<2)
   208 000000B4 F8D9 A000       ldr              r10,[r9]
   209 000000B8 F1BA 0F00       CMP              r10,#0x00
-  210 000000BC D10F            BNE              init_gauche
+  210 000000BC D10F            BNE              rotation_gauche
   211 000000BE E048            B                inter
   212 000000C0         
   213 000000C0         bump_droit                           ;detection du bumpe
@@ -421,16 +421,16 @@ ARM Macro Assembler    Page 7
                                                             ;bumper droit
   215 000000C4 F8D8 E000       ldr              r14, [r8]
   216 000000C8 F1BE 0F00       CMP              r14, #0x00
-  217 000000CC D1E5            BNE              loop
+  217 000000CC D1E5            BNE              activ
   218 000000CE         
   219 000000CE F8DF 91F0       ldr              r9, = GPIO_PORTE_BASE + (BROCHE
 0<<2)
   220 000000D2 F8D9 A000       ldr              r10,[r9]
   221 000000D6 F1BA 0F00       CMP              r10,#0x00
-  222 000000DA D118            BNE              init_droit
+  222 000000DA D118            BNE              rotation_droit
   223 000000DC E039            B                inter
   224 000000DE         
-  225 000000DE         init_gauche
+  225 000000DE         rotation_gauche
   226 000000DE 4E7A            ldr              r6, =PWM0CMPA ;Valeur rapport c
                                                             yclique : pour 10% 
                                                             => 1C2h si clock = 
@@ -451,7 +451,7 @@ ARM Macro Assembler    Page 7
   233 000000F0 6033            str              r3, [r6]
   234 000000F2 F000 F824       BL               TEMP
   235 000000F6         
-  236 000000F6         rotation_gauche
+  236 000000F6         init_gauche
   237 000000F6 4E74            ldr              r6, =PWM0CMPA ;Valeur rapport c
 
 
@@ -471,9 +471,9 @@ ARM Macro Assembler    Page 8
                                                             2 = 0x00
   243 00000106 F1BE 0F00       CMP              r14,#0x00
   244 0000010A D1CA            BNE              bump_gauche
-  245 0000010C E7F3            b                rotation_gauche
+  245 0000010C E7F3            b                init_gauche
   246 0000010E         
-  247 0000010E         init_droit
+  247 0000010E         rotation_droit
   248 0000010E 4E70            ldr              r6, =PWM1CMPA ;Valeur rapport c
                                                             yclique : pour 10% 
                                                             => 1C2h si clock = 
@@ -494,7 +494,7 @@ ARM Macro Assembler    Page 8
   255 00000120 6033            str              r3, [r6]
   256 00000122 F000 F80C       BL               TEMP
   257 00000126         
-  258 00000126         rotation_droite
+  258 00000126         init_droite
   259 00000126 4E6A            ldr              r6, =PWM1CMPA ;Valeur rapport c
                                                             yclique : pour 10% 
                                                             => 1C2h si clock = 
@@ -507,11 +507,11 @@ ARM Macro Assembler    Page 8
   264 00000134 6033            str              r3, [r6]
   265 00000136 F1BE 0F00       CMP              r14,#0x00
   266 0000013A D1C1            BNE              bump_droit
-  267 0000013C E7F3            b                rotation_droite
+  267 0000013C E7F3            b                init_droite
   268 0000013E         
   269 0000013E 4966    TEMP    ldr              r1, =0xEFFFF
-  270 00000140 3901    wait6   subs             r1, #1
-  271 00000142 D1FD            bne              wait6
+  270 00000140 3901    WAIT6   subs             r1, #1
+  271 00000142 D1FD            bne              WAIT6
   272 00000144 D1AD            bne              ROTATION
   273 00000146         ;; retour à la suite d u lien de branchement
   274 00000146 4770            BX               LR
@@ -527,7 +527,7 @@ ARM Macro Assembler    Page 9
   277 00000148         retour
   278 00000148 F7FF FFFE       BL               MOTEUR_DROIT_ON
   279 0000014C F7FF FFFE       BL               MOTEUR_GAUCHE_ON
-  280 00000150 E7A3            B                loop
+  280 00000150 E7A3            B                activ
   281 00000152         
   282 00000152         inter
   283 00000152 F7FF FFFE       BL               MOTEUR_DROIT_OFF
@@ -594,18 +594,18 @@ ARM Macro Assembler    Page 10
   332 000001CE F000 F85E       BL               WAIT
   333 000001D2 F000 F85C       BL               WAIT
   334 000001D6         
-  335 000001D6 E760            B                loop
+  335 000001D6 E760            B                activ
   336 000001D8         
   337 000001D8         win
   338 000001D8 F7FF FFFE       BL               MOTEUR_DROIT_ON
   339 000001DC F7FF FFFE       BL               MOTEUR_GAUCHE_ON
   340 000001E0         
-  341 000001E0         loop2
+  341 000001E0         activ2
   342 000001E0 F7FF FFFE       BL               MOTEUR_DROIT_AVANT
   343 000001E4 F7FF FFFE       BL               MOTEUR_GAUCHE_ARRIERE
   344 000001E8 4934            ldr              r1, = DUREE
-  345 000001EA 3901    wait1   subs             r1, #1
-  346 000001EC D1FD            bne              wait1
+  345 000001EA 3901    WAIT1   subs             r1, #1
+  346 000001EC D1FD            bne              WAIT1
   347 000001EE         
   348 000001EE F7FF FFFE       BL               MOTEUR_DROIT_ARRIERE
   349 000001F2 F7FF FFFE       BL               MOTEUR_GAUCHE_AVANT
@@ -618,8 +618,8 @@ ARM Macro Assembler    Page 10
                                                              pendant la durée i
                                                             ndiqué 
   353 000001FC         
-  354 000001FC 3901    wait2   subs             r1, #1
-  355 000001FE D1FD            bne              wait2
+  354 000001FC 3901    WAIT2   subs             r1, #1
+  355 000001FE D1FD            bne              WAIT2
   356 00000200         
   357 00000200 6033            str              r3, [r6]    ;; Allume portF bro
                                                             che 4 et 5 : les de
@@ -628,7 +628,7 @@ ARM Macro Assembler    Page 10
                                                              pendant la durée i
                                                             ndiqué
   359 00000204         
-  360 00000204 E7EC            b                loop2
+  360 00000204 E7EC            b                activ2
   361 00000206         
   362 00000206         lost
   363 00000206         
@@ -754,7 +754,7 @@ ARM Macro Assembler    Page 12
                                                             yclique : pour 10% 
                                                             => 1C2h si clock = 
                                                             0F42400
-  424 00000262 F44F 70C9       mov              r0, 0x192
+  424 00000262 F44F 70C9       mov              r0, #0x192
   425 00000266 6030            str              r0, [r6]    ;*(int *)(0x4002800
                                                             0+0x058)=0x01C2;
   426 00000268         
@@ -795,8 +795,8 @@ ARM Macro Assembler    Page 13
   445 0000028E         
   446 0000028E         
   447 0000028E 4920    WAIT    ldr              r1, =0x0FFFFF
-  448 00000290 3901    wait3   subs             r1, #1
-  449 00000292 D1FD            bne              wait3
+  448 00000290 3901    WAIT3   subs             r1, #1
+  449 00000292 D1FD            bne              WAIT3
   450 00000294         
   451 00000294         ;; retour à la suite du lien de branchement
   452 00000294 4770            BX               LR
@@ -836,8 +836,8 @@ ARM Macro Assembler    Page 13
               000FFFFF 
 Command Line: --debug --xref --diag_suppress=9931 --cpu=Cortex-M3 --apcs=interw
 ork --depend=.\objects\test_bump.d -o.\objects\test_bump.o -I.\RTE\_Target_1 -I
-C:\Users\sedob\AppData\Local\Arm\Packs\ARM\CMSIS\5.8.0\CMSIS\Core\Include -IC:\
-Users\sedob\AppData\Local\Arm\Packs\ARM\CMSIS\5.8.0\Device\ARM\ARMCM3\Include -
+C:\Users\audri\AppData\Local\Arm\Packs\ARM\CMSIS\5.8.0\CMSIS\Core\Include -IC:\
+Users\audri\AppData\Local\Arm\Packs\ARM\CMSIS\5.8.0\Device\ARM\ARMCM3\Include -
 -predefine="__EVAL SETA 1" --predefine="__MICROLIB SETA 1" --predefine="__UVISI
 ON_VERSION SETA 528" --predefine="_RTE_ SETA 1" --predefine="ARMCM3 SETA 1" --l
 ist=.\listings\test_bump.lst test_bump.s
@@ -922,7 +922,61 @@ Relocatable symbols
       At line 332 in file test_bump.s
       At line 333 in file test_bump.s
 
+WAIT1 000001EA
+
+Symbol: WAIT1
+   Definitions
+      At line 345 in file test_bump.s
+   Uses
+      At line 346 in file test_bump.s
+Comment: WAIT1 used once
+WAIT2 000001FC
+
+Symbol: WAIT2
+   Definitions
+      At line 354 in file test_bump.s
+   Uses
+      At line 355 in file test_bump.s
+Comment: WAIT2 used once
+WAIT3 00000290
+
+Symbol: WAIT3
+   Definitions
+      At line 448 in file test_bump.s
+   Uses
+      At line 449 in file test_bump.s
+Comment: WAIT3 used once
+WAIT5 0000007A
+
+Symbol: WAIT5
+   Definitions
+      At line 171 in file test_bump.s
+   Uses
+      At line 172 in file test_bump.s
+Comment: WAIT5 used once
+WAIT6 00000140
+
+Symbol: WAIT6
+   Definitions
+      At line 270 in file test_bump.s
+   Uses
+      At line 271 in file test_bump.s
+Comment: WAIT6 used once
+WAIT9 00000082
+
+Symbol: WAIT9
+   Definitions
+      At line 177 in file test_bump.s
+   Uses
+      At line 178 in file test_bump.s
+Comment: WAIT9 used once
 __main 00000000
+
+
+
+ARM Macro Assembler    Page 3 Alphabetic symbol ordering
+Relocatable symbols
+
 
 Symbol: __main
    Definitions
@@ -930,6 +984,24 @@ Symbol: __main
    Uses
       At line 68 in file test_bump.s
 Comment: __main used once
+activ 0000009A
+
+Symbol: activ
+   Definitions
+      At line 190 in file test_bump.s
+   Uses
+      At line 217 in file test_bump.s
+      At line 280 in file test_bump.s
+      At line 335 in file test_bump.s
+
+activ2 000001E0
+
+Symbol: activ2
+   Definitions
+      At line 341 in file test_bump.s
+   Uses
+      At line 360 in file test_bump.s
+Comment: activ2 used once
 bump_droit 000000C0
 
 Symbol: bump_droit
@@ -947,6 +1019,14 @@ Symbol: bump_gauche
    Uses
       At line 244 in file test_bump.s
 Comment: bump_gauche used once
+clignotement 00000076
+
+Symbol: clignotement
+   Definitions
+      At line 167 in file test_bump.s
+   Uses
+      At line 183 in file test_bump.s
+Comment: clignotement used once
 debut 0000008E
 
 Symbol: debut
@@ -955,28 +1035,28 @@ Symbol: debut
    Uses
       At line 182 in file test_bump.s
 Comment: debut used once
-init_droit 0000010E
+init_droite 00000126
 
-Symbol: init_droit
+
+
+ARM Macro Assembler    Page 4 Alphabetic symbol ordering
+Relocatable symbols
+
+
+Symbol: init_droite
    Definitions
-      At line 247 in file test_bump.s
+      At line 258 in file test_bump.s
    Uses
-      At line 222 in file test_bump.s
-Comment: init_droit used once
-init_gauche 000000DE
+      At line 267 in file test_bump.s
+Comment: init_droite used once
+init_gauche 000000F6
 
 Symbol: init_gauche
    Definitions
-      At line 225 in file test_bump.s
+      At line 236 in file test_bump.s
    Uses
-      At line 210 in file test_bump.s
+      At line 245 in file test_bump.s
 Comment: init_gauche used once
-
-
-
-ARM Macro Assembler    Page 3 Alphabetic symbol ordering
-Relocatable symbols
-
 inter 00000152
 
 Symbol: inter
@@ -994,32 +1074,6 @@ Symbol: inter2
    Uses
       At line 315 in file test_bump.s
 Comment: inter2 used once
-loop 0000009A
-
-Symbol: loop
-   Definitions
-      At line 190 in file test_bump.s
-   Uses
-      At line 217 in file test_bump.s
-      At line 280 in file test_bump.s
-      At line 335 in file test_bump.s
-
-loop1 00000076
-
-Symbol: loop1
-   Definitions
-      At line 167 in file test_bump.s
-   Uses
-      At line 183 in file test_bump.s
-Comment: loop1 used once
-loop2 000001E0
-
-Symbol: loop2
-   Definitions
-      At line 341 in file test_bump.s
-   Uses
-      At line 360 in file test_bump.s
-Comment: loop2 used once
 lost 00000206
 
 Symbol: lost
@@ -1036,71 +1090,17 @@ Symbol: retour
    Uses
       At line 292 in file test_bump.s
 Comment: retour used once
+rotation_droit 0000010E
 
-
-
-ARM Macro Assembler    Page 4 Alphabetic symbol ordering
-Relocatable symbols
-
-rotation_droite 00000126
-
-Symbol: rotation_droite
+Symbol: rotation_droit
    Definitions
-      At line 258 in file test_bump.s
+      At line 247 in file test_bump.s
    Uses
-      At line 267 in file test_bump.s
-Comment: rotation_droite used once
-rotation_gauche 000000F6
+      At line 222 in file test_bump.s
+Comment: rotation_droit used once
+rotation_gauche 000000DE
 
 Symbol: rotation_gauche
-   Definitions
-      At line 236 in file test_bump.s
-   Uses
-      At line 245 in file test_bump.s
-Comment: rotation_gauche used once
-wait1 000001EA
-
-Symbol: wait1
-   Definitions
-      At line 345 in file test_bump.s
-   Uses
-      At line 346 in file test_bump.s
-Comment: wait1 used once
-wait2 000001FC
-
-Symbol: wait2
-   Definitions
-      At line 354 in file test_bump.s
-   Uses
-      At line 355 in file test_bump.s
-Comment: wait2 used once
-wait3 00000290
-
-Symbol: wait3
-   Definitions
-      At line 448 in file test_bump.s
-   Uses
-      At line 449 in file test_bump.s
-Comment: wait3 used once
-wait5 0000007A
-
-Symbol: wait5
-   Definitions
-      At line 171 in file test_bump.s
-   Uses
-      At line 172 in file test_bump.s
-Comment: wait5 used once
-wait6 00000140
-
-Symbol: wait6
-   Definitions
-      At line 270 in file test_bump.s
-   Uses
-      At line 271 in file test_bump.s
-Comment: wait6 used once
-wait9 00000082
-
-Symbol: wait9
 
 
 
@@ -1108,10 +1108,10 @@ ARM Macro Assembler    Page 5 Alphabetic symbol ordering
 Relocatable symbols
 
    Definitions
-      At line 177 in file test_bump.s
+      At line 225 in file test_bump.s
    Uses
-      At line 178 in file test_bump.s
-Comment: wait9 used once
+      At line 210 in file test_bump.s
+Comment: rotation_gauche used once
 win 000001D8
 
 Symbol: win

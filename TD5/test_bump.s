@@ -110,10 +110,10 @@ __main
         ldr r0, = BROCHE4_5			
         str r0, [r6]
 
-        mov r2, #0x000       					;; pour eteindre LED
+        mov r2, #0x00       					;; pour eteindre LED
      
 		; allumer la led broche 4 et 5(PIN4&PIN5)
-		mov r3, BROCHE4_5       					;; Allume portF broche 4 et 5 : 00110000
+		mov r3, #BROCHE4_5       					;; Allume portF broche 4 et 5 : 00110000
 		ldr r6, = GPIO_PORTF_BASE + (BROCHE4_5<<2)  ;; @data Register = @base + (mask<<2) ==> LED1
 
 		;vvvvvvvvvvvvvvvvvvvvvvvFin configuration LED 
@@ -163,31 +163,31 @@ __main
 		  ;; @data Register = @base + (mask<<2) ==> Switcher
 		
 		str r3, [r6]
-		ldr r4, =0x00000F
-loop1
+		ldr r4, = 0x00000F
+clignotement
         str r2, [r6]    						;; Eteint les deux LED     
         ldr r1, = DUREE 						;; pour la duree de la boucle d'attente
 
-wait5	subs r1, #1
-        bne wait5
+WAIT5	subs r1, #1
+        bne WAIT5
 
         str r3, [r6]  							;; Allume les deux LED 
         ldr r1, = DUREE							;; pour la duree de la boucle d'attente
 
-wait9   subs r1, #1
-        bne wait9
+WAIT9   subs r1, #1
+        bne WAIT9
 		 
 		subs r4, #5
 		CMP r4, #1
 		BLE debut
-		B loop1
+		B clignotement
          
 debut		
 		BL	MOTEUR_INIT	 
 		
 		BL	MOTEUR_DROIT_ON
 		BL	MOTEUR_GAUCHE_ON
-loop		  		   
+activ		  		   
 		
 		; Activer les deux moteurs droit et gauche
 			
@@ -207,22 +207,22 @@ bump_gauche ;detection du bumper droit ou gauche
 		ldr r9, = GPIO_PORTE_BASE + (BROCHE1<<2)
 		ldr r10,[r9]
 		CMP r10,#0x00
-		BNE init_gauche
+		BNE rotation_gauche
 		B inter
 		
 bump_droit ;detection du bumper droit ou gauche
 		ldr r8, = GPIO_PORTE_BASE + (BROCHE1<<2) ;bumper droit
 		ldr r14, [r8]
 		CMP r14, #0x00
-		BNE loop
+		BNE activ
 
 		ldr r9, = GPIO_PORTE_BASE + (BROCHE0<<2)
 		ldr r10,[r9]
 		CMP r10,#0x00
-		BNE init_droit
+		BNE rotation_droit
 		B inter
 		
-init_gauche
+rotation_gauche
 		ldr	r6, =PWM0CMPA ;Valeur rapport cyclique : pour 10% => 1C2h si clock = 0F42400
 		mov	r0, #0x180; vitesse de la roue droite
 		str	r0, [r6]
@@ -233,7 +233,7 @@ init_gauche
 		str r3, [r6]
 		BL	TEMP
 
-rotation_gauche
+init_gauche
 		ldr	r6, =PWM0CMPA ;Valeur rapport cyclique : pour 10% => 1C2h si clock = 0F42400
 		mov	r0, #0x50
 		str	r0, [r6]
@@ -242,9 +242,9 @@ rotation_gauche
 		str r3, [r6]	;; Eteint LED car r2 = 0x00
 		CMP r14,#0x00
 		BNE bump_gauche
-		b	rotation_gauche
+		b	init_gauche
 
-init_droit
+rotation_droit
 		ldr	r6, =PWM1CMPA ;Valeur rapport cyclique : pour 10% => 1C2h si clock = 0F42400
 		mov	r0, #0x180; vitesse de la roue droite
 		str	r0, [r6]
@@ -255,7 +255,7 @@ init_droit
 		str r3, [r6]
 		BL	TEMP
 		
-rotation_droite
+init_droite
 		ldr	r6, =PWM1CMPA ;Valeur rapport cyclique : pour 10% => 1C2h si clock = 0F42400
 		mov	r0, #0x50
 		str	r0, [r6]
@@ -264,11 +264,11 @@ rotation_droite
 		str r3, [r6]
 		CMP r14,#0x00
 		BNE bump_droit
-		b	rotation_droite
+		b	init_droite
 
 TEMP	ldr r1, =0xEFFFF
-wait6	subs r1, #1
-        bne wait6
+WAIT6	subs r1, #1
+        bne WAIT6
 		bne ROTATION
 		;; retour à la suite d u lien de branchement
 		BX	LR
@@ -277,7 +277,7 @@ wait6	subs r1, #1
 retour
 		BL	MOTEUR_DROIT_ON
 		BL	MOTEUR_GAUCHE_ON
-		B loop
+		B activ
 
 inter
 		BL	MOTEUR_DROIT_OFF
@@ -332,18 +332,18 @@ ReadState2
 		BL WAIT
 		BL WAIT
 		
-		B loop
+		B activ
 		
 win		
 		BL MOTEUR_DROIT_ON
 		BL MOTEUR_GAUCHE_ON
 
-loop2	
+activ2	
 		BL MOTEUR_DROIT_AVANT
 		BL MOTEUR_GAUCHE_ARRIERE
         ldr r1, = DUREE 						
-wait1	subs r1, #1
-        bne wait1
+WAIT1	subs r1, #1
+        bne WAIT1
 
         BL MOTEUR_DROIT_ARRIERE
 		BL MOTEUR_GAUCHE_AVANT
@@ -351,13 +351,13 @@ wait1	subs r1, #1
 		str r2, [r6]     ;; Eteint portF broche 4 et 5 : les deux leds
         ldr r1, = DUREE		;; ils sont éteints pendant la durée indiqué	
 
-wait2   subs r1, #1
-        bne wait2
+WAIT2   subs r1, #1
+        bne WAIT2
 		
         str r3, [r6]   ;; Allume portF broche 4 et 5 : les deux leds
         ldr r1, = DUREE ;; ils sont éteints pendant la durée indiqué
 
-        b loop2
+        b activ2
 		
 lost
 
@@ -421,7 +421,7 @@ lost
 		str	r0,[r6]
 		
 		ldr	r6, =PWM1CMPA ;Valeur rapport cyclique : pour 10% => 1C2h si clock = 0F42400
-		mov	r0,	0x192
+		mov	r0,	#0x192
 		str	r0, [r6]  ;*(int *)(0x40028000+0x058)=0x01C2;
 		
 		ldr	r6, =PWM1CMPB ;PWM0CMPB recoit meme valeur. (CMPA depend du rapport cyclique)
@@ -445,8 +445,8 @@ lost
 
 		
 WAIT	ldr r1, =0x0FFFFF 
-wait3	subs r1, #1
-        bne wait3
+WAIT3	subs r1, #1
+        bne WAIT3
 		
 		;; retour à la suite du lien de branchement
 		BX	LR     
